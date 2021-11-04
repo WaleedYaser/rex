@@ -1,5 +1,11 @@
 #include "rex.h"
 
+#include "geometry.h"
+
+inline static Pixel operator*(Pixel p, float f) { return {p.r * f, p.g * f, p.b * f, p.a * f}; }
+inline static Pixel operator*(float f, Pixel p) { return {p.r * f, p.g * f, p.b * f, p.a * f}; }
+inline static Pixel operator+(Pixel p1, Pixel p2) { return {p1.r + p2.r, p1.g + p2.g, p1.b + p2.b, p1.a + p2.a}; }
+
 static constexpr Pixel color_palette[] = {
     {0.19f, 0.30f, 0.39f, 1.0f}, // dark blue
     {0.70f, 0.91f, 0.91f, 1.0f}, // light blue
@@ -40,19 +46,16 @@ loop(Rex* self)
     }
 
     // clear
-    for (int y = 0; y < canvas.height; ++y)
+    for (int i = 0; i < canvas.height * canvas.width; ++i)
     {
-        for (int x = 0; x < canvas.width; ++x)
-        {
-            canvas.pixels[y * canvas.width + x] = color_palette[0];
-        }
+        canvas.pixels[i] = color_palette[0];
     }
 
     // draw a triangle
-    float triangle_cs[] = {
-         0.0f,  0.5f,
-        -0.5f, -0.5f,
-         0.5f, -0.5f,
+    Vec2 triangle_cs[] = {
+        { 0.0f,  0.5f},
+        {-0.5f, -0.5f},
+        { 0.5f, -0.5f},
     };
 
     Pixel tri_colors[] = {
@@ -64,56 +67,48 @@ loop(Rex* self)
         // {0.0f, 0.0f, 1.0f, 1.0f},
     };
 
-    float triangle_ss[6] = { };
+    Vec2 triangle_ss[3] = { };
 
     // convert triangle to screen space
-    for (int i = 0; i < 6; i += 2)
+    for (int i = 0; i < 3; ++i)
     {
-        triangle_ss[i+0] = (triangle_cs[i+0] + 1.0f) * canvas.width * 0.5f;
-        triangle_ss[i+1] = (1.0f - triangle_cs[i+1]) * canvas.height * 0.5f;
+        triangle_ss[i].x = (triangle_cs[i].x + 1.0f) * canvas.width * 0.5f;
+        triangle_ss[i].y = (1.0f - triangle_cs[i].y) * canvas.height * 0.5f;
     }
 
     // fill triangle
-    float triangle_vecs[6] = {
-        triangle_ss[2] - triangle_ss[0],
-        triangle_ss[3] - triangle_ss[1],
-
-        triangle_ss[4] - triangle_ss[2],
-        triangle_ss[5] - triangle_ss[3],
-
-        triangle_ss[0] - triangle_ss[4],
-        triangle_ss[1] - triangle_ss[5],
+    Vec2 triangle_vecs[3] = {
+        triangle_ss[1] - triangle_ss[0],
+        triangle_ss[2] - triangle_ss[1],
+        triangle_ss[0] - triangle_ss[2],
     };
 
-    float area = -(triangle_vecs[0] * triangle_vecs[3] - triangle_vecs[1] * triangle_vecs[2]);
+    float area = -cross(triangle_vecs[0], triangle_vecs[1]);
     for (int y = 0; y < canvas.height; ++y)
     {
         for (int x = 0; x < canvas.width; ++x)
         {
             float weights[3] = {};
-            for (int i = 0; i < 6; i +=2)
+            for (int i = 0; i < 3; ++i)
             {
-                float vx = x - triangle_ss[i+0];
-                float vy = y - triangle_ss[i+1];
-
-                weights[i/2] = (vx * triangle_vecs[i+1] - vy * triangle_vecs[i+0]) / area;
+                Vec2 v = Vec2{(float)x, (float)y} - triangle_ss[i];
+                weights[i] = cross(v, triangle_vecs[i]) / area;
             }
 
             if (weights[0] > 0 && weights[1] > 0 && weights[2] > 0) {
-                canvas.pixels[y * canvas.width + x] = {
-                    tri_colors[2].r * weights[0] + tri_colors[0].r * weights[1] + tri_colors[1].r * weights[2],
-                    tri_colors[2].g * weights[0] + tri_colors[0].g * weights[1] + tri_colors[1].g * weights[2],
-                    tri_colors[2].b * weights[0] + tri_colors[0].b * weights[1] + tri_colors[1].b * weights[2],
-                };
+                canvas.pixels[y * canvas.width + x] =
+                    weights[0] * tri_colors[2] +
+                    weights[1] * tri_colors[0] +
+                    weights[2] * tri_colors[1];
             }
         }
     }
 
     // draw triangle points
-    for (int i = 0; i < 6; i += 2)
+    for (int i = 0; i < 3; ++i)
     {
-        int px = (int)triangle_ss[i+0];
-        int py = (int)triangle_ss[i+1];
+        int px = (int)triangle_ss[i].x;
+        int py = (int)triangle_ss[i].y;
         int r = 20;
         int rr = r * r;
         for (int y = py - r; y < py + r; ++y)
