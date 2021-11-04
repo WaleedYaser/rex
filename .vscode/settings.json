@@ -1,0 +1,7 @@
+{
+    "triggerTaskOnSave.tasks": {
+        "build rex": [
+            "code/*"
+        ]
+    }
+}
