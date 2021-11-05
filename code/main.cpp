@@ -207,7 +207,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdSh
         SetWindowText(hwnd, buffer);
 
         // rex loop
-        g_rex.dt = 1.0f / total_ms;
+        g_rex.dt = total_ms * 0.001f;
         g_api->loop(&g_rex);
         _paint(hwnd);
     }

@@ -15,6 +15,7 @@ typedef struct Rex
 {
 	// owned values
 	Image canvas;
+	float* depth_buffer;
 
 	// values set from client
 	int quit;

@@ -23,6 +23,7 @@ init(Rex* self)
 inline static void
 destroy(Rex* self)
 {
+    self->free(self->depth_buffer);
     self->free(self->canvas.pixels);
 }
 
@@ -43,90 +44,196 @@ loop(Rex* self)
         canvas.pixels = (Pixel*)self->alloc(self->window_width * self->window_height * sizeof(Pixel));
         canvas.width = self->window_width;
         canvas.height = self->window_height;
+
+        self->free(self->depth_buffer);
+        self->depth_buffer = (float*)self->alloc(self->window_width * self->window_height * sizeof(float));
     }
 
-    // clear
+    // clear color and depth
     for (int i = 0; i < canvas.height * canvas.width; ++i)
     {
         canvas.pixels[i] = color_palette[0];
+        self->depth_buffer[i] = 1.0f;
     }
 
-    // draw a triangle
-    Vec2 triangle_cs[] = {
-        { 0.0f,  0.5f},
-        {-0.5f, -0.5f},
-        { 0.5f, -0.5f},
-    };
-
-    Pixel tri_colors[] = {
-        color_palette[1],
-        color_palette[2],
-        color_palette[3],
-        // {1.0f, 0.0f, 0.0f, 1.0f},
-        // {0.0f, 1.0f, 0.0f, 1.0f},
-        // {0.0f, 0.0f, 1.0f, 1.0f},
-    };
-
-    Vec2 triangle_ss[3] = { };
-
-    // convert triangle to screen space
-    for (int i = 0; i < 3; ++i)
-    {
-        triangle_ss[i].x = (triangle_cs[i].x + 1.0f) * canvas.width * 0.5f;
-        triangle_ss[i].y = (1.0f - triangle_cs[i].y) * canvas.height * 0.5f;
-    }
-
-    // fill triangle
-    Vec2 triangle_vecs[3] = {
-        triangle_ss[1] - triangle_ss[0],
-        triangle_ss[2] - triangle_ss[1],
-        triangle_ss[0] - triangle_ss[2],
-    };
-
-    float area = -cross(triangle_vecs[0], triangle_vecs[1]);
-    for (int y = 0; y < canvas.height; ++y)
-    {
-        for (int x = 0; x < canvas.width; ++x)
-        {
-            float weights[3] = {};
-            for (int i = 0; i < 3; ++i)
-            {
-                Vec2 v = Vec2{(float)x, (float)y} - triangle_ss[i];
-                weights[i] = cross(v, triangle_vecs[i]) / area;
-            }
-
-            if (weights[0] > 0 && weights[1] > 0 && weights[2] > 0) {
-                canvas.pixels[y * canvas.width + x] =
-                    weights[0] * tri_colors[2] +
-                    weights[1] * tri_colors[0] +
-                    weights[2] * tri_colors[1];
-            }
-        }
-    }
-
-    // draw triangle points
-    for (int i = 0; i < 3; ++i)
-    {
-        int px = (int)triangle_ss[i].x;
-        int py = (int)triangle_ss[i].y;
-        int r = 20;
-        int rr = r * r;
-        for (int y = py - r; y < py + r; ++y)
-        {
-            for (int x = px - r; x < px + r; ++x)
-            {
-                int d = (x - px) * (x - px) + (y - py) * (y - py);
-                if (d <= rr)
-                    canvas.pixels[y * canvas.width + x] = tri_colors[i / 2];
-            }
-        }
-    }
-
-
-#if 1
-    // draw animated circle in the middle
+    // animation parameters
     static bool reverse = false;
     static float t = 0;
+
+    // model matrix
+    Mat4 model = mat4_euler(0, t, 0) * mat4_translation(0, 0, -5);
+    // projection matrix
+    Mat4 proj = mat4_perspective(30, (float)canvas.width / (float)canvas.height, 0.1f, 100.0f);
+
+    // triangle in camera space
+    Vec3 vertices[] = {
+        // triangle
+#if 0
+        {  0.0f,  1.0f, 0.0f },
+        { -1.0f, -1.0f, 0.0f },
+        {  1.0f, -1.0f, 0.0f },
+#else
+        // box from learnopengl.com
+        { -1.0f, -1.0f, -1.0f },
+        {  1.0f, -1.0f, -1.0f },
+        {  1.0f,  1.0f, -1.0f },
+        {  1.0f,  1.0f, -1.0f },
+        { -1.0f,  1.0f, -1.0f },
+        { -1.0f, -1.0f, -1.0f },
+
+        { -1.0f, -1.0f,  1.0f },
+        {  1.0f, -1.0f,  1.0f },
+        {  1.0f,  1.0f,  1.0f },
+        {  1.0f,  1.0f,  1.0f },
+        { -1.0f,  1.0f,  1.0f },
+        { -1.0f, -1.0f,  1.0f },
+
+        { -1.0f,  1.0f,  1.0f },
+        { -1.0f,  1.0f, -1.0f },
+        { -1.0f, -1.0f, -1.0f },
+        { -1.0f, -1.0f, -1.0f },
+        { -1.0f, -1.0f,  1.0f },
+        { -1.0f,  1.0f,  1.0f },
+
+        {  1.0f,  1.0f,  1.0f },
+        {  1.0f,  1.0f, -1.0f },
+        {  1.0f, -1.0f, -1.0f },
+        {  1.0f, -1.0f, -1.0f },
+        {  1.0f, -1.0f,  1.0f },
+        {  1.0f,  1.0f,  1.0f },
+
+        { -1.0f, -1.0f, -1.0f },
+        {  1.0f, -1.0f, -1.0f },
+        {  1.0f, -1.0f,  1.0f },
+        {  1.0f, -1.0f,  1.0f },
+        { -1.0f, -1.0f,  1.0f },
+        { -1.0f, -1.0f, -1.0f },
+
+        { -1.0f,  1.0f, -1.0f },
+        {  1.0f,  1.0f, -1.0f },
+        {  1.0f,  1.0f,  1.0f },
+        {  1.0f,  1.0f,  1.0f },
+        { -1.0f,  1.0f,  1.0f },
+        { -1.0f,  1.0f, -1.0f },
+#endif
+    };
+
+    int count = sizeof(vertices) / sizeof(Vec3);
+
+    Pixel colors[] = {
+        // color_palette[1],
+        // color_palette[2],
+        // color_palette[3],
+#if 0
+        {1.0f, 0.0f, 0.0f, 1.0f},
+        {0.0f, 1.0f, 0.0f, 1.0f},
+        {0.0f, 0.0f, 1.0f, 1.0f},
+#else
+        {1.0f, 0.0f, 0.0f, 1.0f},
+        {1.0f, 0.0f, 0.0f, 1.0f},
+        {1.0f, 0.0f, 0.0f, 1.0f},
+        {1.0f, 0.0f, 0.0f, 1.0f},
+        {1.0f, 0.0f, 0.0f, 1.0f},
+        {1.0f, 0.0f, 0.0f, 1.0f},
+
+        {0.0f, 1.0f, 0.0f, 1.0f},
+        {0.0f, 1.0f, 0.0f, 1.0f},
+        {0.0f, 1.0f, 0.0f, 1.0f},
+        {0.0f, 1.0f, 0.0f, 1.0f},
+        {0.0f, 1.0f, 0.0f, 1.0f},
+        {0.0f, 1.0f, 0.0f, 1.0f},
+
+        {0.0f, 0.0f, 1.0f, 1.0f},
+        {0.0f, 0.0f, 1.0f, 1.0f},
+        {0.0f, 0.0f, 1.0f, 1.0f},
+        {0.0f, 0.0f, 1.0f, 1.0f},
+        {0.0f, 0.0f, 1.0f, 1.0f},
+        {0.0f, 0.0f, 1.0f, 1.0f},
+
+        {1.0f, 1.0f, 0.0f, 1.0f},
+        {1.0f, 1.0f, 0.0f, 1.0f},
+        {1.0f, 1.0f, 0.0f, 1.0f},
+        {1.0f, 1.0f, 0.0f, 1.0f},
+        {1.0f, 1.0f, 0.0f, 1.0f},
+        {1.0f, 1.0f, 0.0f, 1.0f},
+
+        {0.0f, 1.0f, 1.0f, 1.0f},
+        {0.0f, 1.0f, 1.0f, 1.0f},
+        {0.0f, 1.0f, 1.0f, 1.0f},
+        {0.0f, 1.0f, 1.0f, 1.0f},
+        {0.0f, 1.0f, 1.0f, 1.0f},
+        {0.0f, 1.0f, 1.0f, 1.0f},
+
+        {1.0f, 0.0f, 1.0f, 1.0f},
+        {1.0f, 0.0f, 1.0f, 1.0f},
+        {1.0f, 0.0f, 1.0f, 1.0f},
+        {1.0f, 0.0f, 1.0f, 1.0f},
+        {1.0f, 0.0f, 1.0f, 1.0f},
+        {1.0f, 0.0f, 1.0f, 1.0f},
+#endif
+    };
+
+    // transform vertices to clip space
+    for (int i = 0; i < count; ++i)
+    {
+        Vec4 v = Vec4{ vertices[i].x, vertices[i].y, vertices[i].z, 1.0f } * model * proj;
+        v /= v.w;
+        vertices[i] = {v.x, v.y, v.z};
+    }
+
+    // transform vertices to screen space
+    for (int i = 0; i < count; ++i)
+    {
+        vertices[i].x = (vertices[i].x + 1.0f) * canvas.width * 0.5f;
+        vertices[i].y = (vertices[i].y + 1.0f) * canvas.height * 0.5f;
+    }
+
+    for (int i = 0; i < count; i += 3)
+    {
+        Vec2 v0 = { vertices[i+0].x, vertices[i+0].y };
+        Vec2 v1 = { vertices[i+1].x, vertices[i+1].y };
+        Vec2 v2 = { vertices[i+2].x, vertices[i+2].y };
+
+        Vec2 a = v1 - v0;
+        Vec2 b = v2 - v1;
+        Vec2 c = v0 - v2;
+
+        float area = -cross(a, b);
+
+        Vec2 bb_min = min(min(v0, v1), v2);
+        Vec2 bb_max = max(max(v0, v1), v2);
+
+        int min_x = (int)max(0, bb_min.x);
+        int max_x = (int)min((float)canvas.width, bb_max.x);
+
+        int min_y = (int)max(0, bb_min.y);
+        int max_y = (int)min((float)canvas.height, bb_max.y);
+
+        for (int y = min_y; y < max_y; ++y)
+        {
+            for (int x = min_x; x < max_x; ++x)
+            {
+                Vec2 p = Vec2{(float)x, (float)y};
+
+                float w0 = cross(p - v1, b) / area;
+                float w1 = cross(p - v2, c) / area;
+                float w2 = cross(p - v0, a) / area;
+
+                if (w0 > 0 && w1 > 0 && w2 > 0)
+                {
+                    float depth = w0 * vertices[i+0].z + w1 * vertices[i+1].z + w2 * vertices[i+2].z;
+                    if (depth < self->depth_buffer[y * canvas.width + x])
+                    {
+                        canvas.pixels[y * canvas.width + x] = w0 * colors[i] + w1 * colors[i+1] + w2 * colors[i+2];
+                        self->depth_buffer[y * canvas.width + x] = depth;
+                    }
+                }
+            }
+        }
+    }
+
+#if 0
+    // draw animated circle in the middle
     int mid_x = canvas.width / 2;
     int mid_y = canvas.height / 2;
     float radius_squared = 100 * 100 + t*t * 100 * 100;
@@ -140,13 +247,17 @@ loop(Rex* self)
         }
     }
 
+#endif
+
     // reverse animation
-    if (t <= 0 || t >= 1)
-        reverse = !reverse;
+    if (t <= -3.14f)
+        reverse = false;
+    else if (t >= 3.14f)
+        reverse = true;
 
     // update t
-    t = reverse ? t - self->dt : t + self->dt;
-#endif
+    float dt = self->dt > 0.033f ? 0.033f : self->dt;
+    t = reverse ? t - dt : t + dt;
 }
 
 Rex_Api*
