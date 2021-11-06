@@ -34,7 +34,15 @@ struct Vec3
     float x, y, z;
 };
 
+inline static Vec3 operator+(const Vec3& a, const Vec3& b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
 inline static Vec3 operator-(const Vec3& a, const Vec3& b) { return {a.x - b.x, a.y - b.y, a.z - b.z}; }
+inline static Vec3& operator+=(Vec3& a, const Vec3& b) { a = {a.x + b.x, a.y + b.y, a.z + b.z}; return a; }
+inline static Vec3& operator-=(Vec3& a, const Vec3& b) { a = {a.x - b.x, a.y - b.y, a.z - b.z}; return a; }
+inline static Vec3 operator*(const Vec3& a, float f) { return {a.x * f, a.y * f, a.z *f}; }
+
+inline static Vec3 min(const Vec3& a, const Vec3& b) { return { a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z }; }
+inline static Vec3 max(const Vec3& a, const Vec3& b) { return { a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z }; }
+
 
 union Vec4
 {
@@ -102,6 +110,48 @@ mat4_translation(float tx, float ty, float tz)
         0,  1,  0, 0,
         0,  0,  1, 0,
         tx, ty, tz, 1
+    };
+}
+
+inline static Mat4
+mat4_rotation_x(float pitch)
+{
+    float c = cos(pitch);
+    float s = sin(pitch);
+
+    return Mat4{
+        1,  0, 0, 0,
+        0,  c, s, 0,
+        0, -s, c, 0,
+        0,  0, 0, 1
+    };
+}
+
+inline static Mat4
+mat4_rotation_y(float head)
+{
+    float c = cos(head);
+    float s = sin(head);
+
+    return Mat4{
+        c, 0, -s, 0,
+        0, 1,  0, 0,
+        s, 0,  c, 0,
+        0, 0,  0, 1
+    };
+}
+
+inline static Mat4
+mat4_rotation_z(float roll)
+{
+    float c = cos(roll);
+    float s = sin(roll);
+
+    return Mat4{
+            c, s, 0, 0,
+           -s, c, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
     };
 }
 

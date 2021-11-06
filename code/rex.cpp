@@ -17,7 +17,46 @@ static constexpr Pixel color_palette[] = {
 inline static void
 init(Rex* self)
 {
-    *self = Rex{};
+    // parse stl file
+    Content stl_data = self->file_read(L"../data/dino.stl");
+    {
+        unsigned char* ptr = stl_data.data;
+        // skip header (80 bytes)
+        ptr += 80;
+        // number of triangles (4 bytes)
+        unsigned int triangles_number = *(unsigned int*)ptr;
+        ptr += 4;
+        // allocate data
+        self->bunny_vertices_count = triangles_number * 3;
+        self->bunny_vertices = (Vec3*)self->alloc(self->bunny_vertices_count * sizeof(Vec3));
+        // parse triangles
+        for (unsigned int i = 0; i < triangles_number; ++i)
+        {
+            // TODO: skip normal for now (12 bytes)
+            ptr += 12;
+            // copy 3 triangle vertices (12 bytes each)
+            self->bunny_vertices[i*3 + 0] = *(Vec3*)ptr;
+            ptr += 12;
+            self->bunny_vertices[i*3 + 1] = *(Vec3*)ptr;
+            ptr += 12;
+            self->bunny_vertices[i*3 + 2] = *(Vec3*)ptr;
+            ptr += 12;
+            // skip attribute byt count (2 bytes)
+            ptr += 2;
+        }
+    }
+    self->free(stl_data.data);
+
+    // center stl
+    Vec3 bb_min = self->bunny_vertices[0];
+    Vec3 bb_max = self->bunny_vertices[0];
+    for (unsigned int i = 1; i < self->bunny_vertices_count; ++i)
+    {
+        bb_min = min(bb_min, self->bunny_vertices[i]);
+        bb_max = max(bb_max, self->bunny_vertices[i]);
+    }
+    for (unsigned int i = 0; i < self->bunny_vertices_count; ++i)
+        self->bunny_vertices[i] -= ((bb_max + bb_min) * 0.5f);
 }
 
 inline static void
@@ -25,12 +64,14 @@ destroy(Rex* self)
 {
     self->free(self->depth_buffer);
     self->free(self->canvas.pixels);
+    self->free(self->bunny_vertices);
 }
 
 inline static void
 reload(Rex* self)
 {
-
+    self->free(self->bunny_vertices);
+    init(self);
 }
 
 inline static void
@@ -61,11 +102,13 @@ loop(Rex* self)
     static float t = 0;
 
     // model matrix
-    Mat4 model = mat4_euler(0, t, 0) * mat4_translation(0, 0, -5);
+    // Mat4 model = mat4_euler(0, t, 0) * mat4_translation(0, 0, -50);
+    Mat4 model =  mat4_rotation_x(-3.14f * 0.5f) * mat4_rotation_y(t) * mat4_translation(0, 0, -150);
     // projection matrix
-    Mat4 proj = mat4_perspective(30, (float)canvas.width / (float)canvas.height, 0.1f, 100.0f);
+    Mat4 proj = mat4_perspective(30, (float)canvas.width / (float)canvas.height, 0.1f, 300.0f);
 
     // triangle in camera space
+#if 0
     Vec3 vertices[] = {
         // triangle
 #if 0
@@ -117,7 +160,6 @@ loop(Rex* self)
         { -1.0f,  1.0f, -1.0f },
 #endif
     };
-
     int count = sizeof(vertices) / sizeof(Vec3);
 
     Pixel colors[] = {
@@ -173,26 +215,33 @@ loop(Rex* self)
 #endif
     };
 
-    // transform vertices to clip space
-    for (int i = 0; i < count; ++i)
-    {
-        Vec4 v = Vec4{ vertices[i].x, vertices[i].y, vertices[i].z, 1.0f } * model * proj;
-        v /= v.w;
-        vertices[i] = {v.x, v.y, v.z};
-    }
+#endif
 
-    // transform vertices to screen space
-    for (int i = 0; i < count; ++i)
-    {
-        vertices[i].x = (vertices[i].x + 1.0f) * canvas.width * 0.5f;
-        vertices[i].y = (vertices[i].y + 1.0f) * canvas.height * 0.5f;
-    }
+    Vec3* vertices = self->bunny_vertices;
+    int count = self->bunny_vertices_count;
 
+    Mat4 mp = model * proj;
     for (int i = 0; i < count; i += 3)
     {
-        Vec2 v0 = { vertices[i+0].x, vertices[i+0].y };
-        Vec2 v1 = { vertices[i+1].x, vertices[i+1].y };
-        Vec2 v2 = { vertices[i+2].x, vertices[i+2].y };
+        // transform vertices to clip space
+        Vec4 v0_c = Vec4{ vertices[i+0].x, vertices[i+0].y, vertices[i+0].z, 1.0f } * mp;
+        v0_c /= v0_c.w;
+        Vec4 v1_c = Vec4{ vertices[i+1].x, vertices[i+1].y, vertices[i+1].z, 1.0f } * mp;
+        v1_c /= v1_c.w;
+        Vec4 v2_c = Vec4{ vertices[i+2].x, vertices[i+2].y, vertices[i+2].z, 1.0f } * mp;
+        v2_c /= v2_c.w;
+
+        // transform vertices to screen space
+        v0_c.x = (v0_c.x + 1.0f) * canvas.width * 0.5f;
+        v0_c.y = (v0_c.y + 1.0f) * canvas.height * 0.5f;
+        v1_c.x = (v1_c.x + 1.0f) * canvas.width * 0.5f;
+        v1_c.y = (v1_c.y + 1.0f) * canvas.height * 0.5f;
+        v2_c.x = (v2_c.x + 1.0f) * canvas.width * 0.5f;
+        v2_c.y = (v2_c.y + 1.0f) * canvas.height * 0.5f;
+
+        Vec2 v0 = { v0_c.x, v0_c.y };
+        Vec2 v1 = { v1_c.x, v1_c.y };
+        Vec2 v2 = { v2_c.x, v2_c.y };
 
         Vec2 a = v1 - v0;
         Vec2 b = v2 - v1;
@@ -221,10 +270,13 @@ loop(Rex* self)
 
                 if (w0 > 0 && w1 > 0 && w2 > 0)
                 {
-                    float depth = w0 * vertices[i+0].z + w1 * vertices[i+1].z + w2 * vertices[i+2].z;
+                    float depth = w0 * v0_c.z + w1 * v1_c.z + w2 * v1_c.z;
                     if (depth < self->depth_buffer[y * canvas.width + x])
                     {
+#if 0
                         canvas.pixels[y * canvas.width + x] = w0 * colors[i] + w1 * colors[i+1] + w2 * colors[i+2];
+#endif
+                        canvas.pixels[y * canvas.width + x] = color_palette[1];
                         self->depth_buffer[y * canvas.width + x] = depth;
                     }
                 }

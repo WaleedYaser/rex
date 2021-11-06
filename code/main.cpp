@@ -25,6 +25,32 @@ _free(void* ptr)
     VirtualFree(ptr, 0, MEM_RELEASE);
 }
 
+inline static Content
+_file_read(wchar_t* path)
+{
+    HANDLE hfile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+    if (hfile == INVALID_HANDLE_VALUE)
+        return {};
+
+    Content res = {};
+    res.size = GetFileSize(hfile, nullptr);
+    if (res.size == INVALID_FILE_SIZE)
+        return {};
+
+    DWORD bytes_read = 0;
+    res.data = (unsigned char*)_alloc(res.size);
+    bool read_res = ReadFile(hfile, res.data, res.size, &bytes_read, nullptr);
+    CloseHandle(hfile);
+
+    if (read_res == false)
+    {
+        _free(res.data);
+        return {};
+    }
+
+    return res;
+}
+
 inline static void
 _paint(HWND hwnd)
 {
@@ -140,11 +166,12 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdSh
     bool res = SetCurrentDirectory(buffer);
     assert(res && "SetCurrentDirectory failed");
 
-    // load rex module for the first time and initialize it
-    _hot_reload_rex_module();
     // initialize platform functions
     g_rex.alloc = _alloc;
     g_rex.free = _free;
+    g_rex.file_read = _file_read;
+    // load rex module for the first time and initialize it
+    _hot_reload_rex_module();
 
     // window creation
     WNDCLASSEX wcx = {};

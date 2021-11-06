@@ -11,11 +11,21 @@ typedef struct Image
 	Pixel* pixels;
 } Image;
 
+typedef struct Content
+{
+	unsigned char* data;
+	unsigned int size;
+} Content;
+
+struct Vec3;
+
 typedef struct Rex
 {
 	// owned values
 	Image canvas;
 	float* depth_buffer;
+	Vec3* bunny_vertices;
+	unsigned int bunny_vertices_count;
 
 	// values set from client
 	int quit;
@@ -25,6 +35,7 @@ typedef struct Rex
 	// platform functions
 	void* (*alloc)(size_t size);
 	void  (*free)(void *ptr);
+	Content (*file_read)(wchar_t* path);
 } Rex;
 
 typedef struct Rex_Api
