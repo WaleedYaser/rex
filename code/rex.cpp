@@ -62,7 +62,7 @@ init(Rex* self)
     for (unsigned int i = 0; i < self->bunny_vertices_count; ++i)
         self->bunny_vertices[i] -= ((bb_max + bb_min) * 0.5f);
 
-    self->camera_z = (bb_max - bb_min).z * 2.5f;
+    self->camera_z = (bb_max - bb_min).z * 2.0f;
 }
 
 inline static void
@@ -299,18 +299,14 @@ loop(Rex* self)
                     float depth = w0 * v0_c.z + w1 * v1_c.z + w2 * v1_c.z;
                     if (depth < self->depth_buffer[y * canvas.width + x])
                     {
-                        Pixel light_color = color_palette[3];
+                        Pixel light_color = color_palette[4];
                         Vec3 light_pos = {};
-                        // phong lighting
-                        // ambient
-                        Pixel ambient = 0.2f * light_color;
-                        // diffuse
+                        // very basic phong lighting
                         Vec3 frag_pos = v0_w * w0 + v1_w * w1 + v2_w * w2;
                         Vec3 light_dir = normalize(light_pos - frag_pos);
                         float diff = max(dot(n0, light_dir), 0.0);
                         Pixel diffuse = diff * light_color;
                         canvas.pixels[y * canvas.width + x] = diffuse;
-                        // canvas.pixels[y * canvas.width + x] = Pixel{n0.x, n0.y, n0.z};
 
 #if 0
                         canvas.pixels[y * canvas.width + x] = w0 * colors[i] + w1 * colors[i+1] + w2 * colors[i+2];
