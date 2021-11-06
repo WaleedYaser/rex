@@ -29,10 +29,14 @@ init(Rex* self)
         // allocate data
         self->bunny_vertices_count = triangles_number * 3;
         self->bunny_vertices = (Vec3*)self->alloc(self->bunny_vertices_count * sizeof(Vec3));
+        self->bunny_normals = (Vec3*)self->alloc(self->bunny_vertices_count * sizeof(Vec3));
         // parse triangles
         for (unsigned int i = 0; i < triangles_number; ++i)
         {
-            // TODO: skip normal for now (12 bytes)
+            // copy triangle normal (12 bytes)
+            self->bunny_normals[i*3 + 0] = *(Vec3*)ptr;
+            self->bunny_normals[i*3 + 1] = *(Vec3*)ptr;
+            self->bunny_normals[i*3 + 2] = *(Vec3*)ptr;
             ptr += 12;
             // copy 3 triangle vertices (12 bytes each)
             self->bunny_vertices[i*3 + 0] = *(Vec3*)ptr;
@@ -57,6 +61,8 @@ init(Rex* self)
     }
     for (unsigned int i = 0; i < self->bunny_vertices_count; ++i)
         self->bunny_vertices[i] -= ((bb_max + bb_min) * 0.5f);
+
+    self->camera_z = (bb_max - bb_min).z * 2.5f;
 }
 
 inline static void
@@ -65,6 +71,7 @@ destroy(Rex* self)
     self->free(self->depth_buffer);
     self->free(self->canvas.pixels);
     self->free(self->bunny_vertices);
+    self->free(self->bunny_normals);
 }
 
 inline static void
@@ -103,7 +110,7 @@ loop(Rex* self)
 
     // model matrix
     // Mat4 model = mat4_euler(0, t, 0) * mat4_translation(0, 0, -50);
-    Mat4 model =  mat4_rotation_x(-3.14f * 0.5f) * mat4_rotation_y(t) * mat4_translation(0, 0, -150);
+    Mat4 model =  mat4_rotation_x(-3.14f * 0.5f) * mat4_rotation_y(t) * mat4_translation(0, 0, -self->camera_z);
     // projection matrix
     Mat4 proj = mat4_perspective(30, (float)canvas.width / (float)canvas.height, 0.1f, 300.0f);
 
@@ -218,17 +225,36 @@ loop(Rex* self)
 #endif
 
     Vec3* vertices = self->bunny_vertices;
+    Vec3* normals = self->bunny_normals;
     int count = self->bunny_vertices_count;
 
     Mat4 mp = model * proj;
     for (int i = 0; i < count; i += 3)
     {
+        // transform vertices to world space
+        Vec4 _v0_w = Vec4{ vertices[i+0].x, vertices[i+0].y, vertices[i+0].z, 1.0f } * model;
+        Vec4 _v1_w = Vec4{ vertices[i+1].x, vertices[i+1].y, vertices[i+1].z, 1.0f } * model;
+        Vec4 _v2_w = Vec4{ vertices[i+2].x, vertices[i+2].y, vertices[i+2].z, 1.0f } * model;
+
+        Vec3 v0_w = Vec3{ _v0_w.x, _v0_w.y, _v0_w.z };
+        Vec3 v1_w = Vec3{ _v1_w.x, _v1_w.y, _v1_w.z };
+        Vec3 v2_w = Vec3{ _v2_w.x, _v2_w.y, _v2_w.z };
+
+        // transform normals to world space
+        Vec4 _n0 = Vec4{ normals[i+0].x, normals[i+0].y, normals[i+0].z, 0.0f } * model;
+        Vec4 _n1 = Vec4{ normals[i+1].x, normals[i+1].y, normals[i+1].z, 0.0f } * model;
+        Vec4 _n2 = Vec4{ normals[i+2].x, normals[i+2].y, normals[i+2].z, 0.0f } * model;
+
+        Vec3 n0 = Vec3{ _n0.x, _n0.y, _n0.z };
+        Vec3 n1 = Vec3{ _n1.x, _n1.y, _n1.z };
+        Vec3 n2 = Vec3{ _n2.x, _n2.y, _n2.z };
+
         // transform vertices to clip space
-        Vec4 v0_c = Vec4{ vertices[i+0].x, vertices[i+0].y, vertices[i+0].z, 1.0f } * mp;
+        Vec4 v0_c = Vec4{ v0_w.x, v0_w.y, v0_w.z, 1.0f } * proj;
         v0_c /= v0_c.w;
-        Vec4 v1_c = Vec4{ vertices[i+1].x, vertices[i+1].y, vertices[i+1].z, 1.0f } * mp;
+        Vec4 v1_c = Vec4{ v1_w.x, v1_w.y, v1_w.z, 1.0f } * proj;
         v1_c /= v1_c.w;
-        Vec4 v2_c = Vec4{ vertices[i+2].x, vertices[i+2].y, vertices[i+2].z, 1.0f } * mp;
+        Vec4 v2_c = Vec4{ v2_w.x, v2_w.y, v2_w.z, 1.0f } * proj;
         v2_c /= v2_c.w;
 
         // transform vertices to screen space
@@ -253,16 +279,16 @@ loop(Rex* self)
         Vec2 bb_max = max(max(v0, v1), v2);
 
         int min_x = (int)max(0, bb_min.x);
-        int max_x = (int)min((float)canvas.width, bb_max.x);
+        int max_x = (int)min((float)canvas.width - 1, bb_max.x);
 
         int min_y = (int)max(0, bb_min.y);
-        int max_y = (int)min((float)canvas.height, bb_max.y);
+        int max_y = (int)min((float)canvas.height - 1, bb_max.y);
 
-        for (int y = min_y; y < max_y; ++y)
+        for (int y = min_y; y <= max_y; ++y)
         {
-            for (int x = min_x; x < max_x; ++x)
+            for (int x = min_x; x <= max_x; ++x)
             {
-                Vec2 p = Vec2{(float)x, (float)y};
+                Vec2 p = Vec2{x + 0.5f, y + 0.5f};
 
                 float w0 = cross(p - v1, b) / area;
                 float w1 = cross(p - v2, c) / area;
@@ -273,10 +299,23 @@ loop(Rex* self)
                     float depth = w0 * v0_c.z + w1 * v1_c.z + w2 * v1_c.z;
                     if (depth < self->depth_buffer[y * canvas.width + x])
                     {
+                        Pixel light_color = color_palette[3];
+                        Vec3 light_pos = {};
+                        // phong lighting
+                        // ambient
+                        Pixel ambient = 0.2f * light_color;
+                        // diffuse
+                        Vec3 frag_pos = v0_w * w0 + v1_w * w1 + v2_w * w2;
+                        Vec3 light_dir = normalize(light_pos - frag_pos);
+                        float diff = max(dot(n0, light_dir), 0.0);
+                        Pixel diffuse = diff * light_color;
+                        canvas.pixels[y * canvas.width + x] = diffuse;
+                        // canvas.pixels[y * canvas.width + x] = Pixel{n0.x, n0.y, n0.z};
+
 #if 0
                         canvas.pixels[y * canvas.width + x] = w0 * colors[i] + w1 * colors[i+1] + w2 * colors[i+2];
 #endif
-                        canvas.pixels[y * canvas.width + x] = color_palette[1];
+                        // canvas.pixels[y * canvas.width + x] = color_palette[1];
                         self->depth_buffer[y * canvas.width + x] = depth;
                     }
                 }

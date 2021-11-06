@@ -10,6 +10,7 @@ extern "C" {
     double atan2(double, double);
 }
 
+inline static float sqrt(float f) { return (float)::sqrt((double)f); }
 inline static float sin(float f) { return (float)::sin((double)f); }
 inline static float cos(float f) { return (float)::cos((double)f); }
 inline static float tan(float f) { return (float)::tan((double)f); }
@@ -39,10 +40,35 @@ inline static Vec3 operator-(const Vec3& a, const Vec3& b) { return {a.x - b.x, 
 inline static Vec3& operator+=(Vec3& a, const Vec3& b) { a = {a.x + b.x, a.y + b.y, a.z + b.z}; return a; }
 inline static Vec3& operator-=(Vec3& a, const Vec3& b) { a = {a.x - b.x, a.y - b.y, a.z - b.z}; return a; }
 inline static Vec3 operator*(const Vec3& a, float f) { return {a.x * f, a.y * f, a.z *f}; }
+inline static Vec3 operator/(const Vec3 &v, float f) { return v * (1.0f / f); }
 
 inline static Vec3 min(const Vec3& a, const Vec3& b) { return { a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z }; }
 inline static Vec3 max(const Vec3& a, const Vec3& b) { return { a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z }; }
 
+inline static float
+dot(const Vec3 &a, const Vec3 &b)
+{
+    return (a.x * b.x + a.y * b.y + a.z * b.z);
+}
+
+
+inline static float
+norm(const Vec3 &v)
+{
+    return sqrt(dot(v, v));
+}
+
+inline static float
+length(const Vec3 &v)
+{
+    return norm(v);
+}
+
+inline static Vec3
+normalize(const Vec3 &v)
+{
+    return v / length(v);
+}
 
 union Vec4
 {
