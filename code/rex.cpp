@@ -101,7 +101,7 @@ loop(Rex* self)
     for (int i = 0; i < canvas.height * canvas.width; ++i)
     {
         canvas.pixels[i] = color_palette[0];
-        self->depth_buffer[i] = 1.0f;
+        self->depth_buffer[i] = -300.0f;
     }
 
     // animation parameters
@@ -296,8 +296,8 @@ loop(Rex* self)
 
                 if (w0 > 0 && w1 > 0 && w2 > 0)
                 {
-                    float depth = w0 * v0_c.z + w1 * v1_c.z + w2 * v1_c.z;
-                    if (depth < self->depth_buffer[y * canvas.width + x])
+                    float depth = w0 * v0_w.z + w1 * v1_w.z + w2 * v2_w.z;
+                    if (depth > self->depth_buffer[y * canvas.width + x])
                     {
                         Pixel light_color = color_palette[4];
                         Vec3 light_pos = {};
@@ -343,7 +343,7 @@ loop(Rex* self)
         reverse = true;
 
     // update t
-    float dt = self->dt > 0.033f ? 0.033f : self->dt;
+    float dt = self->dt; // > 0.033f ? 0.033f : self->dt;
     t = reverse ? t - dt : t + dt;
 }
 
