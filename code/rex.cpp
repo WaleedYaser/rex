@@ -9,9 +9,114 @@ inline static Pixel operator*(Pixel p, float f) { return {p.r * f, p.g * f, p.b 
 inline static Pixel operator*(float f, Pixel p) { return {p.r * f, p.g * f, p.b * f, p.a * f}; }
 inline static Pixel operator+(Pixel p1, Pixel p2) { return {p1.r + p2.r, p1.g + p2.g, p1.b + p2.b, p1.a + p2.a}; }
 
+inline static bool
+_bytes_eq(unsigned char* a, unsigned char* b, int size)
+{
+    for (int i = 0; i < size; ++i)
+        if (a[i] != b[i])
+            return false;
+    return true;
+}
+
+// source: https://stackoverflow.com/a/2637138
+inline static unsigned int
+_to_little_endian(unsigned int val)
+{
+    val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0x00FF00FF);
+    return (val << 16) | (val >> 16);
+}
+
+inline static bool
+_is_lower_case(unsigned char c)
+{
+    return c >= 'a' && c <= 'z';
+}
+
 inline static void
 init(Rex* self)
 {
+    // parse png file
+#if 0
+    Content png_data = self->file_read(L"../data/color_baseColor.png");
+    {
+        unsigned char* ptr = png_data.data;
+        // parse header (8 bytes)
+        unsigned char header[] = {0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+        assert(_bytes_eq(ptr, header, 8));
+        ptr += 8;
+        while (true)
+        {
+            // chunk length (4 bytes)
+            unsigned int length = _to_little_endian(*(unsigned int*)ptr);
+            ptr += 4;
+            // chunk type (4 bytes)
+            unsigned int type = _to_little_endian(*(unsigned int*)ptr);
+            ptr += 4;
+            // skip any ancillary chunks (chunks that start with lower case)
+            if (_is_lower_case(((unsigned char*)(unsigned int*)&type)[3]))
+            {
+                // skip chunk data
+                ptr += length;
+                // skip CRC (4 bytes)
+                ptr += 4;
+                continue;
+            }
+            // end chunk
+            if (type == 'IEND')
+                break;
+
+            switch (type)
+            {
+                case 'IHDR':
+                // parse first critical chunk IHDR (25 bytes)
+                {
+                    assert(length == 13);
+                    // chunk data (13 bytes)
+                    // width (4 bytes)
+                    [[maybe_unused]] unsigned int width = _to_little_endian(*(unsigned int*)ptr);
+                    ptr += 4;
+                    // height (4 bytes)
+                    [[maybe_unused]] unsigned int height = _to_little_endian(*(unsigned int*)ptr);
+                    ptr += 4;
+                    // bit depth (1 byte)
+                    [[maybe_unused]] unsigned char bit_depth = *ptr;
+                    ptr += 1;
+                    // color type (1 byte)
+                    [[maybe_unused]] unsigned char color_type = *ptr;
+                    ptr +=1;
+                    // compression method (1 byte)
+                    unsigned char compression_method = *ptr;
+                    ptr +=1;
+                    assert(compression_method == 0);
+                    // filter method (1 byte)
+                    unsigned char filter_method = *ptr;
+                    ptr += 1;
+                    assert(filter_method == 0);
+                    // interlace method (1 byte)
+                    [[maybe_unused]] unsigned char interlace_method = *ptr;
+                    ptr += 1;
+                    // TODO: skip CRC checksum (4 bytes)
+                    ptr += 4;
+
+                    break;
+                }
+                case 'IDAT':
+                {
+                    // TODO:
+                    break;
+                }
+                default:
+                {
+                    // skip chunk data
+                    ptr += length;
+                    // skip CRC (4 bytes)
+                    ptr += 4;
+                    break;
+                }
+            }
+        }
+    }
+#endif
     // parse stl file
     Content stl_data = self->file_read(L"../data/bunny.stl");
     {
