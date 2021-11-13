@@ -24,9 +24,11 @@ typedef struct Rex
 	// owned values
 	Image canvas;
 	float* depth_buffer;
-	Vec3* bunny_vertices;
-	Vec3* bunny_normals;
-	unsigned int bunny_vertices_count;
+
+	Vec3* vertices;
+	Vec3* normals;
+	Pixel* colors;
+	unsigned int vertices_count;
 	float camera_z;
 
 	// values set from client

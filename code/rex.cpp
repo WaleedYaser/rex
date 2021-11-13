@@ -1,18 +1,11 @@
 #include "rex.h"
 
 #include "geometry.h"
+#include "constants.h"
 
 inline static Pixel operator*(Pixel p, float f) { return {p.r * f, p.g * f, p.b * f, p.a * f}; }
 inline static Pixel operator*(float f, Pixel p) { return {p.r * f, p.g * f, p.b * f, p.a * f}; }
 inline static Pixel operator+(Pixel p1, Pixel p2) { return {p1.r + p2.r, p1.g + p2.g, p1.b + p2.b, p1.a + p2.a}; }
-
-static constexpr Pixel color_palette[] = {
-    {0.19f, 0.30f, 0.39f, 1.0f}, // dark blue
-    {0.70f, 0.91f, 0.91f, 1.0f}, // light blue
-    {0.56f, 0.73f, 0.67f, 1.0f}, // green
-    {0.95f, 0.82f, 0.59f, 1.0f}, // yellow
-    {0.93f, 0.54f, 0.46f, 1.0f}, // orange
-};
 
 inline static void
 init(Rex* self)
@@ -27,23 +20,23 @@ init(Rex* self)
         unsigned int triangles_number = *(unsigned int*)ptr;
         ptr += 4;
         // allocate data
-        self->bunny_vertices_count = triangles_number * 3;
-        self->bunny_vertices = (Vec3*)self->alloc(self->bunny_vertices_count * sizeof(Vec3));
-        self->bunny_normals = (Vec3*)self->alloc(self->bunny_vertices_count * sizeof(Vec3));
+        self->vertices_count = triangles_number * 3;
+        self->vertices = (Vec3*)self->alloc(self->vertices_count * sizeof(Vec3));
+        self->normals = (Vec3*)self->alloc(self->vertices_count * sizeof(Vec3));
         // parse triangles
         for (unsigned int i = 0; i < triangles_number; ++i)
         {
             // copy triangle normal (12 bytes)
-            self->bunny_normals[i*3 + 0] = *(Vec3*)ptr;
-            self->bunny_normals[i*3 + 1] = *(Vec3*)ptr;
-            self->bunny_normals[i*3 + 2] = *(Vec3*)ptr;
+            self->normals[i*3 + 0] = *(Vec3*)ptr;
+            self->normals[i*3 + 1] = *(Vec3*)ptr;
+            self->normals[i*3 + 2] = *(Vec3*)ptr;
             ptr += 12;
             // copy 3 triangle vertices (12 bytes each)
-            self->bunny_vertices[i*3 + 0] = *(Vec3*)ptr;
+            self->vertices[i*3 + 0] = *(Vec3*)ptr;
             ptr += 12;
-            self->bunny_vertices[i*3 + 1] = *(Vec3*)ptr;
+            self->vertices[i*3 + 1] = *(Vec3*)ptr;
             ptr += 12;
-            self->bunny_vertices[i*3 + 2] = *(Vec3*)ptr;
+            self->vertices[i*3 + 2] = *(Vec3*)ptr;
             ptr += 12;
             // skip attribute byt count (2 bytes)
             ptr += 2;
@@ -52,15 +45,15 @@ init(Rex* self)
     self->free(stl_data.data);
 
     // center stl
-    Vec3 bb_min = self->bunny_vertices[0];
-    Vec3 bb_max = self->bunny_vertices[0];
-    for (unsigned int i = 1; i < self->bunny_vertices_count; ++i)
+    Vec3 bb_min = self->vertices[0];
+    Vec3 bb_max = self->vertices[0];
+    for (unsigned int i = 1; i < self->vertices_count; ++i)
     {
-        bb_min = min(bb_min, self->bunny_vertices[i]);
-        bb_max = max(bb_max, self->bunny_vertices[i]);
+        bb_min = min(bb_min, self->vertices[i]);
+        bb_max = max(bb_max, self->vertices[i]);
     }
-    for (unsigned int i = 0; i < self->bunny_vertices_count; ++i)
-        self->bunny_vertices[i] -= ((bb_max + bb_min) * 0.5f);
+    for (unsigned int i = 0; i < self->vertices_count; ++i)
+        self->vertices[i] -= ((bb_max + bb_min) * 0.5f);
 
     self->camera_z = (bb_max - bb_min).z * 2.0f;
 }
@@ -70,14 +63,14 @@ destroy(Rex* self)
 {
     self->free(self->depth_buffer);
     self->free(self->canvas.pixels);
-    self->free(self->bunny_vertices);
-    self->free(self->bunny_normals);
+    self->free(self->vertices);
+    self->free(self->normals);
 }
 
 inline static void
 reload(Rex* self)
 {
-    self->free(self->bunny_vertices);
+    self->free(self->vertices);
     init(self);
 }
 
@@ -108,125 +101,34 @@ loop(Rex* self)
     static bool reverse = false;
     static float t = 0;
 
+#define STL 1
+// #define TRI 1
+// #define CUBE 1
+
+#if STL
+    Vec3* vertices = self->vertices;
+    Vec3* normals = self->normals;
+    int count = self->vertices_count;
     // model matrix
-    // Mat4 model = mat4_euler(0, t, 0) * mat4_translation(0, 0, -50);
     Mat4 model =  mat4_rotation_x(-3.14f * 0.5f) * mat4_rotation_y(t) * mat4_translation(0, 0, -self->camera_z);
+#elif TRI
+    const Vec3* vertices = triangle_vertices;
+    const Vec3* normals = triangle_normals;
+    [[maybe_unused]] const Pixel* colors = triangle_colors;
+    int count = triangle_vertices_count;
+    // model matrix
+    Mat4 model = mat4_rotation_y(t) * mat4_translation(0, 0, -5);
+#elif CUBE
+    const Vec3* vertices = cube_vertices;
+    const Vec3* normals = cube_normals;
+    [[maybe_unused]] const Pixel* colors = cube_colors;
+    int count = cube_vertices_count;
+    // model matrix
+    Mat4 model = mat4_rotation_y(t) * mat4_translation(0, 0, -5);
+#endif
+
     // projection matrix
     Mat4 proj = mat4_perspective(30, (float)canvas.width / (float)canvas.height, 0.1f, 300.0f);
-
-    // triangle in camera space
-#if 0
-    Vec3 vertices[] = {
-        // triangle
-#if 0
-        {  0.0f,  1.0f, 0.0f },
-        { -1.0f, -1.0f, 0.0f },
-        {  1.0f, -1.0f, 0.0f },
-#else
-        // box from learnopengl.com
-        { -1.0f, -1.0f, -1.0f },
-        {  1.0f, -1.0f, -1.0f },
-        {  1.0f,  1.0f, -1.0f },
-        {  1.0f,  1.0f, -1.0f },
-        { -1.0f,  1.0f, -1.0f },
-        { -1.0f, -1.0f, -1.0f },
-
-        { -1.0f, -1.0f,  1.0f },
-        {  1.0f, -1.0f,  1.0f },
-        {  1.0f,  1.0f,  1.0f },
-        {  1.0f,  1.0f,  1.0f },
-        { -1.0f,  1.0f,  1.0f },
-        { -1.0f, -1.0f,  1.0f },
-
-        { -1.0f,  1.0f,  1.0f },
-        { -1.0f,  1.0f, -1.0f },
-        { -1.0f, -1.0f, -1.0f },
-        { -1.0f, -1.0f, -1.0f },
-        { -1.0f, -1.0f,  1.0f },
-        { -1.0f,  1.0f,  1.0f },
-
-        {  1.0f,  1.0f,  1.0f },
-        {  1.0f,  1.0f, -1.0f },
-        {  1.0f, -1.0f, -1.0f },
-        {  1.0f, -1.0f, -1.0f },
-        {  1.0f, -1.0f,  1.0f },
-        {  1.0f,  1.0f,  1.0f },
-
-        { -1.0f, -1.0f, -1.0f },
-        {  1.0f, -1.0f, -1.0f },
-        {  1.0f, -1.0f,  1.0f },
-        {  1.0f, -1.0f,  1.0f },
-        { -1.0f, -1.0f,  1.0f },
-        { -1.0f, -1.0f, -1.0f },
-
-        { -1.0f,  1.0f, -1.0f },
-        {  1.0f,  1.0f, -1.0f },
-        {  1.0f,  1.0f,  1.0f },
-        {  1.0f,  1.0f,  1.0f },
-        { -1.0f,  1.0f,  1.0f },
-        { -1.0f,  1.0f, -1.0f },
-#endif
-    };
-    int count = sizeof(vertices) / sizeof(Vec3);
-
-    Pixel colors[] = {
-        // color_palette[1],
-        // color_palette[2],
-        // color_palette[3],
-#if 0
-        {1.0f, 0.0f, 0.0f, 1.0f},
-        {0.0f, 1.0f, 0.0f, 1.0f},
-        {0.0f, 0.0f, 1.0f, 1.0f},
-#else
-        {1.0f, 0.0f, 0.0f, 1.0f},
-        {1.0f, 0.0f, 0.0f, 1.0f},
-        {1.0f, 0.0f, 0.0f, 1.0f},
-        {1.0f, 0.0f, 0.0f, 1.0f},
-        {1.0f, 0.0f, 0.0f, 1.0f},
-        {1.0f, 0.0f, 0.0f, 1.0f},
-
-        {0.0f, 1.0f, 0.0f, 1.0f},
-        {0.0f, 1.0f, 0.0f, 1.0f},
-        {0.0f, 1.0f, 0.0f, 1.0f},
-        {0.0f, 1.0f, 0.0f, 1.0f},
-        {0.0f, 1.0f, 0.0f, 1.0f},
-        {0.0f, 1.0f, 0.0f, 1.0f},
-
-        {0.0f, 0.0f, 1.0f, 1.0f},
-        {0.0f, 0.0f, 1.0f, 1.0f},
-        {0.0f, 0.0f, 1.0f, 1.0f},
-        {0.0f, 0.0f, 1.0f, 1.0f},
-        {0.0f, 0.0f, 1.0f, 1.0f},
-        {0.0f, 0.0f, 1.0f, 1.0f},
-
-        {1.0f, 1.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 0.0f, 1.0f},
-
-        {0.0f, 1.0f, 1.0f, 1.0f},
-        {0.0f, 1.0f, 1.0f, 1.0f},
-        {0.0f, 1.0f, 1.0f, 1.0f},
-        {0.0f, 1.0f, 1.0f, 1.0f},
-        {0.0f, 1.0f, 1.0f, 1.0f},
-        {0.0f, 1.0f, 1.0f, 1.0f},
-
-        {1.0f, 0.0f, 1.0f, 1.0f},
-        {1.0f, 0.0f, 1.0f, 1.0f},
-        {1.0f, 0.0f, 1.0f, 1.0f},
-        {1.0f, 0.0f, 1.0f, 1.0f},
-        {1.0f, 0.0f, 1.0f, 1.0f},
-        {1.0f, 0.0f, 1.0f, 1.0f},
-#endif
-    };
-
-#endif
-
-    Vec3* vertices = self->bunny_vertices;
-    Vec3* normals = self->bunny_normals;
-    int count = self->bunny_vertices_count;
 
     Mat4 mp = model * proj;
     for (int i = 0; i < count; i += 3)
@@ -299,42 +201,37 @@ loop(Rex* self)
                     float depth = w0 * v0_w.z + w1 * v1_w.z + w2 * v2_w.z;
                     if (depth > self->depth_buffer[y * canvas.width + x])
                     {
-                        Pixel light_color = color_palette[4];
+#if STL
+                        Pixel color = color_palette[1];
+#else
+                        Pixel color = w0 * colors[i] + w1 * colors[i+1] + w2 * colors[i+2];
+#endif
+
+#define LIGHT 1
+#if LIGHT
+                        Pixel light_color = Pixel{1.0f, 1.0f, 1.0f, 1.0f} * 1.0f;
                         Vec3 light_pos = {};
                         // very basic phong lighting
                         Vec3 frag_pos = v0_w * w0 + v1_w * w1 + v2_w * w2;
                         Vec3 light_dir = normalize(light_pos - frag_pos);
                         float diff = max(dot(n0, light_dir), 0.0);
                         Pixel diffuse = diff * light_color;
-                        canvas.pixels[y * canvas.width + x] = diffuse;
 
-#if 0
-                        canvas.pixels[y * canvas.width + x] = w0 * colors[i] + w1 * colors[i+1] + w2 * colors[i+2];
+                        canvas.pixels[y * canvas.width + x] = {
+                            diffuse.r * color.r,
+                            diffuse.g * color.g,
+                            diffuse.b * color.b,
+                            diffuse.a * color.a,
+                        };
+#else
+                        canvas.pixels[y * canvas.width + x] = color;
 #endif
-                        // canvas.pixels[y * canvas.width + x] = color_palette[1];
                         self->depth_buffer[y * canvas.width + x] = depth;
                     }
                 }
             }
         }
     }
-
-#if 0
-    // draw animated circle in the middle
-    int mid_x = canvas.width / 2;
-    int mid_y = canvas.height / 2;
-    float radius_squared = 100 * 100 + t*t * 100 * 100;
-    for (int y = 0; y < canvas.height; ++y)
-    {
-        for (int x = 0; x < canvas.width; ++x)
-        {
-            int d = (x - mid_x) * (x - mid_x) + (y - mid_y) * (y - mid_y);
-            if (d <= radius_squared)
-                canvas.pixels[y * canvas.width + x] = color_palette[4];
-        }
-    }
-
-#endif
 
     // reverse animation
     if (t <= -3.14f)
