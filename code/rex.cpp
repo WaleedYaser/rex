@@ -3,6 +3,8 @@
 #include "geometry.h"
 #include "constants.h"
 
+#include "assert.h"
+
 inline static Pixel operator*(Pixel p, float f) { return {p.r * f, p.g * f, p.b * f, p.a * f}; }
 inline static Pixel operator*(float f, Pixel p) { return {p.r * f, p.g * f, p.b * f, p.a * f}; }
 inline static Pixel operator+(Pixel p1, Pixel p2) { return {p1.r + p2.r, p1.g + p2.g, p1.b + p2.b, p1.a + p2.a}; }
@@ -11,7 +13,7 @@ inline static void
 init(Rex* self)
 {
     // parse stl file
-    Content stl_data = self->file_read(L"../data/dino.stl");
+    Content stl_data = self->file_read(L"../data/bunny.stl");
     {
         unsigned char* ptr = stl_data.data;
         // skip header (80 bytes)
@@ -176,6 +178,10 @@ loop(Rex* self)
         Vec2 c = v0 - v2;
 
         float area = -cross(a, b);
+
+        // TODO: revisit back-face culling
+        // if (area >= 0)
+        //     continue;
 
         Vec2 bb_min = min(min(v0, v1), v2);
         Vec2 bb_max = max(max(v0, v1), v2);
