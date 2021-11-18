@@ -24,6 +24,8 @@ struct Vec2
 };
 
 inline static Vec2 operator-(const Vec2& a, const Vec2& b) { return {a.x - b.x, a.y - b.y}; }
+inline static Vec2 operator+(const Vec2& a, const Vec2& b) { return {a.x + b.x, a.y + b.y}; }
+inline static Vec2 operator*(float f, const Vec2& a) { return {a.x * f, a.y * f}; }
 
 inline static float cross(const Vec2& a, const Vec2& b) { return a.x * b.y - a.y * b.x; }
 

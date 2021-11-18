@@ -5,120 +5,18 @@
 
 #include "assert.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 inline static Pixel operator*(Pixel p, float f) { return {p.r * f, p.g * f, p.b * f, p.a * f}; }
 inline static Pixel operator*(float f, Pixel p) { return {p.r * f, p.g * f, p.b * f, p.a * f}; }
 inline static Pixel operator+(Pixel p1, Pixel p2) { return {p1.r + p2.r, p1.g + p2.g, p1.b + p2.b, p1.a + p2.a}; }
 
-inline static bool
-_bytes_eq(unsigned char* a, unsigned char* b, int size)
-{
-    for (int i = 0; i < size; ++i)
-        if (a[i] != b[i])
-            return false;
-    return true;
-}
-
-// source: https://stackoverflow.com/a/2637138
-inline static unsigned int
-_to_little_endian(unsigned int val)
-{
-    val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0x00FF00FF);
-    return (val << 16) | (val >> 16);
-}
-
-inline static bool
-_is_lower_case(unsigned char c)
-{
-    return c >= 'a' && c <= 'z';
-}
-
 inline static void
 init(Rex* self)
 {
-    // parse png file
-#if 0
-    Content png_data = self->file_read(L"../data/color_baseColor.png");
-    {
-        unsigned char* ptr = png_data.data;
-        // parse header (8 bytes)
-        unsigned char header[] = {0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
-        assert(_bytes_eq(ptr, header, 8));
-        ptr += 8;
-        while (true)
-        {
-            // chunk length (4 bytes)
-            unsigned int length = _to_little_endian(*(unsigned int*)ptr);
-            ptr += 4;
-            // chunk type (4 bytes)
-            unsigned int type = _to_little_endian(*(unsigned int*)ptr);
-            ptr += 4;
-            // skip any ancillary chunks (chunks that start with lower case)
-            if (_is_lower_case(((unsigned char*)(unsigned int*)&type)[3]))
-            {
-                // skip chunk data
-                ptr += length;
-                // skip CRC (4 bytes)
-                ptr += 4;
-                continue;
-            }
-            // end chunk
-            if (type == 'IEND')
-                break;
-
-            switch (type)
-            {
-                case 'IHDR':
-                // parse first critical chunk IHDR (25 bytes)
-                {
-                    assert(length == 13);
-                    // chunk data (13 bytes)
-                    // width (4 bytes)
-                    [[maybe_unused]] unsigned int width = _to_little_endian(*(unsigned int*)ptr);
-                    ptr += 4;
-                    // height (4 bytes)
-                    [[maybe_unused]] unsigned int height = _to_little_endian(*(unsigned int*)ptr);
-                    ptr += 4;
-                    // bit depth (1 byte)
-                    [[maybe_unused]] unsigned char bit_depth = *ptr;
-                    ptr += 1;
-                    // color type (1 byte)
-                    [[maybe_unused]] unsigned char color_type = *ptr;
-                    ptr +=1;
-                    // compression method (1 byte)
-                    unsigned char compression_method = *ptr;
-                    ptr +=1;
-                    assert(compression_method == 0);
-                    // filter method (1 byte)
-                    unsigned char filter_method = *ptr;
-                    ptr += 1;
-                    assert(filter_method == 0);
-                    // interlace method (1 byte)
-                    [[maybe_unused]] unsigned char interlace_method = *ptr;
-                    ptr += 1;
-                    // TODO: skip CRC checksum (4 bytes)
-                    ptr += 4;
-
-                    break;
-                }
-                case 'IDAT':
-                {
-                    // TODO:
-                    break;
-                }
-                default:
-                {
-                    // skip chunk data
-                    ptr += length;
-                    // skip CRC (4 bytes)
-                    ptr += 4;
-                    break;
-                }
-            }
-        }
-    }
-#endif
     // parse stl file
-    Content stl_data = self->file_read(L"../data/bunny.stl");
+    Content stl_data = self->file_read(L"../data/dino.stl");
     {
         unsigned char* ptr = stl_data.data;
         // skip header (80 bytes)
@@ -163,11 +61,32 @@ init(Rex* self)
         self->vertices[i] -= ((bb_max + bb_min) * 0.5f);
 
     self->camera_z = (bb_max - bb_min).z * 2.0f;
+
+    // load image file
+    {
+        int width, height, channels;
+        unsigned char* data = stbi_load("../data/girl/textures/color_baseColor.jpeg", &width, &height, &channels, 4);
+
+        self->image.pixels = (Pixel*)self->alloc(width * height * sizeof(Pixel));
+        self->image.width = width;
+        self->image.height = height;
+
+        for (int i = 0; i < width * height; ++i)
+        {
+            self->image.pixels[i].r = data[i*4 + 0] / 255.0f;
+            self->image.pixels[i].g = data[i*4 + 1] / 255.0f;
+            self->image.pixels[i].b = data[i*4 + 2] / 255.0f;
+            self->image.pixels[i].a = data[i*4 + 3] / 255.0f;
+        }
+
+        stbi_image_free(data);
+    }
 }
 
 inline static void
 destroy(Rex* self)
 {
+    self->free(self->image.pixels);
     self->free(self->depth_buffer);
     self->free(self->canvas.pixels);
     self->free(self->vertices);
@@ -208,9 +127,10 @@ loop(Rex* self)
     static bool reverse = false;
     static float t = 0;
 
-#define STL 1
+// #define STL 1
 // #define TRI 1
 // #define CUBE 1
+#define QUAD 1
 
 #if STL
     Vec3* vertices = self->vertices;
@@ -232,6 +152,11 @@ loop(Rex* self)
     int count = cube_vertices_count;
     // model matrix
     Mat4 model = mat4_rotation_y(t) * mat4_translation(0, 0, -5);
+#elif QUAD
+    const Vec3* vertices = quad_vertices;
+    int count = quad_vertices_count;
+    // model matrix
+    Mat4 model = mat4_rotation_y(t) * mat4_translation(0, 0, -2.5f);
 #endif
 
     // projection matrix
@@ -250,6 +175,7 @@ loop(Rex* self)
         Vec3 v2_w = Vec3{ _v2_w.x, _v2_w.y, _v2_w.z };
 
         // transform normals to world space
+#if QUAD == 0
         Vec4 _n0 = Vec4{ normals[i+0].x, normals[i+0].y, normals[i+0].z, 0.0f } * model;
         Vec4 _n1 = Vec4{ normals[i+1].x, normals[i+1].y, normals[i+1].z, 0.0f } * model;
         Vec4 _n2 = Vec4{ normals[i+2].x, normals[i+2].y, normals[i+2].z, 0.0f } * model;
@@ -257,6 +183,7 @@ loop(Rex* self)
         Vec3 n0 = Vec3{ _n0.x, _n0.y, _n0.z };
         Vec3 n1 = Vec3{ _n1.x, _n1.y, _n1.z };
         Vec3 n2 = Vec3{ _n2.x, _n2.y, _n2.z };
+#endif
 
         // transform vertices to clip space
         Vec4 v0_c = Vec4{ v0_w.x, v0_w.y, v0_w.z, 1.0f } * proj;
@@ -314,11 +241,15 @@ loop(Rex* self)
                     {
 #if STL
                         Pixel color = color_palette[1];
-#else
+#elif QUAD == 0
                         Pixel color = w0 * colors[i] + w1 * colors[i+1] + w2 * colors[i+2];
+#else
+                        Vec2 uv = w0 * quad_uvs[i+0] + w1 * quad_uvs[i+1] + w2 * quad_uvs[i+2];
+                        int idx = (int)(uv.x * (self->image.width - 1)) + (int)(uv.y * (self->image.height - 1)) * self->image.width;
+                        Pixel color = self->image.pixels[idx];
 #endif
 
-#define LIGHT 1
+#define LIGHT 0
 #if LIGHT
                         Pixel light_color = Pixel{1.0f, 1.0f, 1.0f, 1.0f} * 1.0f;
                         Vec3 light_pos = {};

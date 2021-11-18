@@ -30,6 +30,27 @@ static constexpr Pixel triangle_colors[] = {
 };
 static constexpr unsigned int triangle_vertices_count = sizeof(triangle_vertices) / sizeof(triangle_vertices[0]);
 
+// quad
+static constexpr Vec3 quad_vertices[] = {
+    { -1.0f,  1.0f, 0.0f },
+    {  1.0f, -1.0f, 0.0f },
+    {  1.0f,  1.0f, 0.0f },
+
+    { -1.0f,  1.0f, 0.0f },
+    { -1.0f, -1.0f, 0.0f },
+    {  1.0f, -1.0f, 0.0f },
+};
+static constexpr Vec2 quad_uvs[] = {
+    { 0.0f, 0.0f },
+    { 1.0f, 1.0f },
+    { 1.0f, 0.0f },
+
+    { 0.0f, 0.0f },
+    { 0.0f, 1.0f },
+    { 1.0f, 1.0f },
+};
+static constexpr unsigned int quad_vertices_count = sizeof(quad_vertices) / sizeof(quad_vertices[0]);
+
 // cube from learnopengl.com
 static constexpr Vec3 cube_vertices[] = {
     { -1.0f, -1.0f, -1.0f },

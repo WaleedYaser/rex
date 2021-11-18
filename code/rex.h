@@ -24,6 +24,7 @@ typedef struct Rex
 	// owned values
 	Image canvas;
 	float* depth_buffer;
+	Image image;
 
 	Vec3* vertices;
 	Vec3* normals;
