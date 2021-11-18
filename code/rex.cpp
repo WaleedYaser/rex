@@ -183,6 +183,10 @@ loop(Rex* self)
         Vec3 n0 = Vec3{ _n0.x, _n0.y, _n0.z };
         Vec3 n1 = Vec3{ _n1.x, _n1.y, _n1.z };
         Vec3 n2 = Vec3{ _n2.x, _n2.y, _n2.z };
+#else
+        Vec2 uv0 = quad_uvs[i+0];
+        Vec2 uv1 = quad_uvs[i+1];
+        Vec2 uv2 = quad_uvs[i+2];
 #endif
 
         // transform vertices to clip space
@@ -234,6 +238,15 @@ loop(Rex* self)
                 float w1 = cross(p - v2, c) / area;
                 float w2 = cross(p - v0, a) / area;
 
+                // perspective correction
+                float z = 1.0f / (
+                    w0 * (1.0f / v0_w.z) +
+                    w1 * (1.0f / v1_w.z) +
+                    w2 * (1.0f / v2_w.z));
+                w0 *= (z / v0_w.z);
+                w1 *= (z / v1_w.z);
+                w2 *= (z / v2_w.z);
+
                 if (w0 > 0 && w1 > 0 && w2 > 0)
                 {
                     float depth = w0 * v0_w.z + w1 * v1_w.z + w2 * v2_w.z;
@@ -244,7 +257,7 @@ loop(Rex* self)
 #elif QUAD == 0
                         Pixel color = w0 * colors[i] + w1 * colors[i+1] + w2 * colors[i+2];
 #else
-                        Vec2 uv = w0 * quad_uvs[i+0] + w1 * quad_uvs[i+1] + w2 * quad_uvs[i+2];
+                        Vec2 uv = w0 * uv0 + w1 * uv1 + w2 * uv2;
                         int idx = (int)(uv.x * (self->image.width - 1)) + (int)(uv.y * (self->image.height - 1)) * self->image.width;
                         Pixel color = self->image.pixels[idx];
 #endif
