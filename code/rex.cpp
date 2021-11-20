@@ -1,5 +1,6 @@
 #include "rex.h"
 
+#include "gltf.h"
 #include "geometry.h"
 #include "constants.h"
 
@@ -12,11 +13,29 @@ inline static Pixel operator*(Pixel p, float f) { return {p.r * f, p.g * f, p.b 
 inline static Pixel operator*(float f, Pixel p) { return {p.r * f, p.g * f, p.b * f, p.a * f}; }
 inline static Pixel operator+(Pixel p1, Pixel p2) { return {p1.r + p2.r, p1.g + p2.g, p1.b + p2.b, p1.a + p2.a}; }
 
+inline static const char*
+str_concat(const char *a, const char *b)
+{
+    int a_len = 0;
+    for (const char* ptr = a; *ptr != '\0'; ptr++, a_len++);
+    int b_len = 0;
+    for (const char* ptr = b; *ptr != '\0'; ptr++, b_len++);
+
+    char* res = (char*)malloc(a_len + b_len + 1);
+    for (int i = 0; i < a_len; ++i)
+        res[i] = a[i];
+    for (int i = 0; i < b_len; ++i)
+        res[a_len+i] = b[i];
+    res[a_len + b_len] = '\0';
+
+    return res;
+}
+
 inline static void
 init(Rex* self)
 {
     // parse stl file
-    Content stl_data = self->file_read(L"../data/dino.stl");
+    Content stl_data = self->file_read("../data/dino.stl");
     {
         unsigned char* ptr = stl_data.data;
         // skip header (80 bytes)
@@ -49,23 +68,22 @@ init(Rex* self)
     }
     self->free(stl_data.data);
 
-    // center stl
-    Vec3 bb_min = self->vertices[0];
-    Vec3 bb_max = self->vertices[0];
-    for (unsigned int i = 1; i < self->vertices_count; ++i)
+    auto gltf = gltf_load(self);
     {
-        bb_min = min(bb_min, self->vertices[i]);
-        bb_max = max(bb_max, self->vertices[i]);
-    }
-    for (unsigned int i = 0; i < self->vertices_count; ++i)
-        self->vertices[i] -= ((bb_max + bb_min) * 0.5f);
+        const char* image_path = "";
+        for (int i = 0; i < gltf.root.as_object.length; ++i)
+        {
+            if (str_eq(gltf.root.as_object.members[i].name, "images"))
+            {
+                image_path = gltf.root.as_object.members[i].value.as_array.values[0].as_object.members[0].value.as_str;
+                break;
+            }
+        }
+        image_path = str_concat("../data/girl/", image_path);
 
-    self->camera_z = (bb_max - bb_min).z * 2.0f;
-
-    // load image file
-    {
+        // load image file
         int width, height, channels;
-        unsigned char* data = stbi_load("../data/girl/textures/color_baseColor.jpeg", &width, &height, &channels, 4);
+        unsigned char* data = stbi_load(image_path, &width, &height, &channels, 4);
 
         self->image.pixels = (Pixel*)self->alloc(width * height * sizeof(Pixel));
         self->image.width = width;
@@ -80,6 +98,82 @@ init(Rex* self)
         }
 
         stbi_image_free(data);
+
+        {
+            auto buffer = json_find(gltf.root, "buffers").as_array.values[0];
+            auto buffer_length = json_find(buffer, "byteLength").as_int;
+            auto buffer_uri = json_find(buffer, "uri").as_str;
+
+            auto bin_content = self->file_read(str_concat("../data/girl/", buffer_uri));
+            assert(bin_content.size == buffer_length);
+
+            // load only first mesh
+            auto meshes = json_find(gltf.root, "meshes");
+            auto mesh0 = meshes.as_array.values[0];
+            auto primitive = json_find(mesh0, "primitives").as_array.values[0];
+            auto attributes = json_find(primitive, "attributes");
+
+            auto position_attr = json_find(attributes, "POSITION").as_int;
+            auto normal_attr = json_find(attributes, "NORMAL").as_int;
+            auto uv_attr = json_find(attributes, "TEXCOORD_0").as_int;
+            auto indices_attr = json_find(primitive, "indices").as_int;
+
+            auto accessors = json_find(gltf.root, "accessors");
+            auto position_acc = accessors.as_array.values[position_attr];
+            auto normal_acc = accessors.as_array.values[normal_attr];
+            auto uv_acc = accessors.as_array.values[uv_attr];
+            auto indices_acc = accessors.as_array.values[indices_attr];
+
+            auto position_count = json_find(position_acc, "count").as_int;
+            auto normal_count = json_find(normal_acc, "count").as_int;
+            auto uv_count = json_find(uv_acc, "count").as_int;
+            auto indices_count = json_find(indices_acc, "count").as_int;
+
+            assert(position_count == normal_count && normal_count == uv_count);
+            self->vertices_count = (unsigned int)position_count;
+            self->indices_count = (unsigned int)indices_count;
+
+            auto position_offset = json_find(position_acc, "byteOffset").as_int;
+            auto normal_offset = json_find(normal_acc, "byteOffset").as_int;
+            auto uv_offset = json_find(uv_acc, "byteOffset").as_int;
+            auto indices_offset = json_find(indices_acc, "byteOffset").as_int;
+
+            auto position_view_index = json_find(position_acc, "bufferView").as_int;
+            auto normal_view_index = json_find(normal_acc, "bufferView").as_int;
+            auto uv_view_index = json_find(uv_acc, "bufferView").as_int;
+            auto indices_view_index = json_find(indices_acc, "bufferView").as_int;
+
+            auto bufferViews = json_find(gltf.root, "bufferViews");
+            auto position_view = bufferViews.as_array.values[position_view_index];
+            auto normal_view = bufferViews.as_array.values[normal_view_index];
+            auto uv_view = bufferViews.as_array.values[uv_view_index];
+            auto indices_view = bufferViews.as_array.values[indices_view_index];
+
+            position_offset += json_find(position_view, "byteOffset").as_int;
+            normal_offset += json_find(normal_view, "byteOffset").as_int;
+            uv_offset += json_find(uv_view, "byteOffset").as_int;
+            indices_offset += json_find(indices_view, "byteOffset").as_int;
+
+            self->vertices = (Vec3*)(bin_content.data + position_offset);
+            self->normals = (Vec3*)(bin_content.data + normal_offset);
+            self->uvs = (Vec2*)(bin_content.data + uv_offset);
+            self->indices = (unsigned int*)(bin_content.data + indices_offset);
+        }
+    }
+
+    // center model
+    {
+        Vec3 bb_min = self->vertices[0];
+        Vec3 bb_max = self->vertices[0];
+        for (unsigned int i = 1; i < self->vertices_count; ++i)
+        {
+            bb_min = min(bb_min, self->vertices[i]);
+            bb_max = max(bb_max, self->vertices[i]);
+        }
+        for (unsigned int i = 0; i < self->vertices_count; ++i)
+            self->vertices[i] -= ((bb_max + bb_min) * 0.5f);
+
+        self->camera_z = (bb_max - bb_min).z * 2.0f;
     }
 }
 
@@ -89,15 +183,15 @@ destroy(Rex* self)
     self->free(self->image.pixels);
     self->free(self->depth_buffer);
     self->free(self->canvas.pixels);
-    self->free(self->vertices);
-    self->free(self->normals);
+    // self->free(self->vertices);
+    // self->free(self->normals);
 }
 
 inline static void
 reload(Rex* self)
 {
     self->free(self->vertices);
-    init(self);
+    // init(self);
 }
 
 inline static void
@@ -119,7 +213,7 @@ loop(Rex* self)
     // clear color and depth
     for (int i = 0; i < canvas.height * canvas.width; ++i)
     {
-        canvas.pixels[i] = color_palette[0];
+        canvas.pixels[i] = color_palette[2];
         self->depth_buffer[i] = -300.0f;
     }
 
@@ -127,17 +221,17 @@ loop(Rex* self)
     static bool reverse = false;
     static float t = 0;
 
-// #define STL 1
+#define STL 1
 // #define TRI 1
 // #define CUBE 1
-#define QUAD 1
+// #define QUAD 1
 
 #if STL
     Vec3* vertices = self->vertices;
-    Vec3* normals = self->normals;
-    int count = self->vertices_count;
+    // Vec3* normals = self->normals;
+    int count = self->indices_count > 0 ? self->indices_count : self->vertices_count;
     // model matrix
-    Mat4 model =  mat4_rotation_x(-3.14f * 0.5f) * mat4_rotation_y(t) * mat4_translation(0, 0, -self->camera_z);
+    Mat4 model =  /* mat4_rotation_x(-3.14f * 0.5f) * */ mat4_rotation_y(t) * mat4_translation(0, 0, -self->camera_z);
 #elif TRI
     const Vec3* vertices = triangle_vertices;
     const Vec3* normals = triangle_normals;
@@ -165,28 +259,36 @@ loop(Rex* self)
     Mat4 mp = model * proj;
     for (int i = 0; i < count; i += 3)
     {
+        int i0 = i, i1 = i+1, i2 = i+2;
+        if (self->indices_count > 0)
+        {
+            i0 = self->indices[i+0];
+            i1 = self->indices[i+1];
+            i2 = self->indices[i+2];
+        }
+
         // transform vertices to world space
-        Vec4 _v0_w = Vec4{ vertices[i+0].x, vertices[i+0].y, vertices[i+0].z, 1.0f } * model;
-        Vec4 _v1_w = Vec4{ vertices[i+1].x, vertices[i+1].y, vertices[i+1].z, 1.0f } * model;
-        Vec4 _v2_w = Vec4{ vertices[i+2].x, vertices[i+2].y, vertices[i+2].z, 1.0f } * model;
+        Vec4 _v0_w = Vec4{ vertices[i0].x, vertices[i0].y, vertices[i0].z, 1.0f } * model;
+        Vec4 _v1_w = Vec4{ vertices[i1].x, vertices[i1].y, vertices[i1].z, 1.0f } * model;
+        Vec4 _v2_w = Vec4{ vertices[i2].x, vertices[i2].y, vertices[i2].z, 1.0f } * model;
 
         Vec3 v0_w = Vec3{ _v0_w.x, _v0_w.y, _v0_w.z };
         Vec3 v1_w = Vec3{ _v1_w.x, _v1_w.y, _v1_w.z };
         Vec3 v2_w = Vec3{ _v2_w.x, _v2_w.y, _v2_w.z };
 
         // transform normals to world space
-#if QUAD == 0
-        Vec4 _n0 = Vec4{ normals[i+0].x, normals[i+0].y, normals[i+0].z, 0.0f } * model;
-        Vec4 _n1 = Vec4{ normals[i+1].x, normals[i+1].y, normals[i+1].z, 0.0f } * model;
-        Vec4 _n2 = Vec4{ normals[i+2].x, normals[i+2].y, normals[i+2].z, 0.0f } * model;
+#if QUAD == 1
+        Vec4 _n0 = Vec4{ normals[i0].x, normals[i0].y, normals[i0].z, 0.0f } * model;
+        Vec4 _n1 = Vec4{ normals[i1].x, normals[i1].y, normals[i1].z, 0.0f } * model;
+        Vec4 _n2 = Vec4{ normals[i2].x, normals[i2].y, normals[i2].z, 0.0f } * model;
 
         Vec3 n0 = Vec3{ _n0.x, _n0.y, _n0.z };
         Vec3 n1 = Vec3{ _n1.x, _n1.y, _n1.z };
         Vec3 n2 = Vec3{ _n2.x, _n2.y, _n2.z };
 #else
-        Vec2 uv0 = quad_uvs[i+0];
-        Vec2 uv1 = quad_uvs[i+1];
-        Vec2 uv2 = quad_uvs[i+2];
+        Vec2 uv0 = self->uvs[i0];
+        Vec2 uv1 = self->uvs[i1];
+        Vec2 uv2 = self->uvs[i2];
 #endif
 
         // transform vertices to clip space
@@ -253,14 +355,14 @@ loop(Rex* self)
                     if (depth > self->depth_buffer[y * canvas.width + x])
                     {
 #if STL
-                        Pixel color = color_palette[1];
-#elif QUAD == 0
-                        Pixel color = w0 * colors[i] + w1 * colors[i+1] + w2 * colors[i+2];
+                        // Pixel color = color_palette[1];
 #else
+                        Pixel color = w0 * colors[i0] + w1 * colors[i1] + w2 * colors[i2];
+#endif
+
                         Vec2 uv = w0 * uv0 + w1 * uv1 + w2 * uv2;
                         int idx = (int)(uv.x * (self->image.width - 1)) + (int)(uv.y * (self->image.height - 1)) * self->image.width;
                         Pixel color = self->image.pixels[idx];
-#endif
 
 #define LIGHT 0
 #if LIGHT

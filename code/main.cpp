@@ -26,9 +26,9 @@ _free(void* ptr)
 }
 
 inline static Content
-_file_read(wchar_t* path)
+_file_read(const char* path)
 {
-    HANDLE hfile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+    HANDLE hfile = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
     if (hfile == INVALID_HANDLE_VALUE)
         return {};
 
@@ -151,8 +151,13 @@ _hot_reload_rex_module()
         last_time = data.ftLastWriteTime;
 }
 
+#if 0
 int
 WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+#else
+int
+main()
+#endif
 {
     // set current directory to process directory
     wchar_t buffer[1024] = {};
@@ -179,7 +184,6 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdSh
     wcx.style = CS_OWNDC;
     wcx.lpfnWndProc = _wnd_proc;
     wcx.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wcx.hInstance = hInstance;
     wcx.lpszClassName = L"rex_window_class";
     ATOM class_atom = RegisterClassEx(&wcx);
     assert(class_atom != 0 && "RegisterClassExA failed");
@@ -192,7 +196,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdSh
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         nullptr,
         nullptr,
-        hInstance,
+        nullptr,
         nullptr);
 
     // timing

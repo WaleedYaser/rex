@@ -17,6 +17,7 @@ typedef struct Content
 	unsigned int size;
 } Content;
 
+struct Vec2;
 struct Vec3;
 
 typedef struct Rex
@@ -26,10 +27,14 @@ typedef struct Rex
 	float* depth_buffer;
 	Image image;
 
+	unsigned int vertices_count;
 	Vec3* vertices;
 	Vec3* normals;
-	Pixel* colors;
-	unsigned int vertices_count;
+	Vec2* uvs;
+
+	unsigned int indices_count;
+	unsigned int* indices;
+
 	float camera_z;
 
 	// values set from client
@@ -40,7 +45,7 @@ typedef struct Rex
 	// platform functions
 	void* (*alloc)(size_t size);
 	void  (*free)(void *ptr);
-	Content (*file_read)(wchar_t* path);
+	Content (*file_read)(const char* path);
 } Rex;
 
 typedef struct Rex_Api
