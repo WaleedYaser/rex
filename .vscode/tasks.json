@@ -1,20 +1,50 @@
 {
 	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "shell",
-			"label": "build rex",
-			"command": "build.bat",
-			"options": {
-				"cwd": "${workspaceFolder}"
-			},
-			"problemMatcher": [
-				"$msCompile"
-			],
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
-		}
+    "tasks": [
+        {
+            "label": "build rex",
+            "type": "shell",
+            "windows": {
+                "command": "build.bat"
+            },
+            "linux": {
+                "command": "bash build.sh"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/rex"
+            },
+            "problemMatcher": "$gcc",
+            "group": "build"
+        },
+        {
+            "label": "build rex-viewer",
+            "type": "shell",
+            "windows": {
+                "command": "build.bat"
+            },
+            "linux": {
+                "command": "bash build.sh"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/viewer"
+            },
+            "problemMatcher": "$gcc",
+            "group": "build"
+        },
+        {
+            "label": "build rex all",
+            "type": "shell",
+            "windows": {
+                "command": "build-all.bat"
+            },
+            "linux": {
+                "command": "bash build-all.sh"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": "$gcc",
+            "group": "build"
+        }
 	]
 }

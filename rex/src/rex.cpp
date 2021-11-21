@@ -213,7 +213,7 @@ loop(Rex* self)
     // clear color and depth
     for (int i = 0; i < canvas.height * canvas.width; ++i)
     {
-        canvas.pixels[i] = color_palette[2];
+        canvas.pixels[i] = color_palette[1];
         self->depth_buffer[i] = -300.0f;
     }
 

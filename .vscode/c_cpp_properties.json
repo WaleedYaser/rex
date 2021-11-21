@@ -1,21 +1,31 @@
 {
+    "version": 4,
     "configurations": [
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/**",
+                "${workspaceFolder}/rex/src/**"
             ],
             "defines": [
-                "_DEBUG",
-                "UNICODE",
-                "_UNICODE"
+                "REX_DEBUG",
+                "REX_EXPORT"
             ],
-            "windowsSdkVersion": "10.0.18362.0",
-            "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.24.28314/bin/Hostx64/x64/cl.exe",
-            "cStandard": "c11",
+            "compilerPath": "C:/Program Files/LLVM/bin/clang.exe",
             "cppStandard": "c++17",
-            "intelliSenseMode": "msvc-x64"
+            "intelliSenseMode": "clang-x64"
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/rex/src/**"
+            ],
+            "defines": [
+                "REX_DEBUG",
+                "REX_EXPORT"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "clang-x64"
         }
-    ],
-    "version": 4
+    ]
 }

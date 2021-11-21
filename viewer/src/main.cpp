@@ -7,6 +7,8 @@
 #include <windows.h>
 #include <assert.h>
 
+#include "defines.h"
+
 static Rex g_rex;
 static Rex_Api* g_api;
 
