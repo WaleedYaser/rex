@@ -4,7 +4,8 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/rex/src/**"
+                "${workspaceFolder}/rex/src/**",
+                "${workspaceFolder}/rex-core/include/**"
             ],
             "defines": [
                 "REX_DEBUG",

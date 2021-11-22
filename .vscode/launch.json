@@ -16,5 +16,13 @@
             "program": "${workspaceFolder}/bin/playground",
             "cwd": "${workspaceFolder}"
         },
+        {
+            "name": "rex-utests (windows)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/rex-utests.exe",
+            "cwd": "${workspaceFolder}",
+            "console": "externalTerminal"
+        },
     ]
 }

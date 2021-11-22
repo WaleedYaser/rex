@@ -61,8 +61,8 @@ rem parameter2: library name
   rem -Wextra: more warnings
   rem -Wpedantic: all warnings demaded by strict ISO C and ISO C++
   @REM set compiler_flags=-shared -g -Werror -Weverything
-  set compiler_flags=-shared -g -Wall -Wextra
-  set include_flags=-Isrc
+  set compiler_flags=-shared -g -Wall -Wextra -std=c++17
+  set include_flags=-Iinclude
   set linker_flags=-luser32
   set defines=-DREX_DEBUG=1 -DREx_RELEASE=0 -DREX_EXPORT=1 -DREX_IMPORT=0
 
@@ -103,10 +103,10 @@ rem parameter2: executalble name
   )
 
   @REM set compiler_flags=-g -Werror -Weverything
-  set compiler_flags=-g -Werror -Wall -Wextra
-  set include_flags=-Isrc -I../rex/src
-  set linker_flags=-L%build_dir% -lrex.lib -luser32 -lGdi32 -lWinmm
-  set defines=-DREX_DEBUG=1 -DREX_RELEASE=0 -DREX_EXPORT=0 -DREX_IMPORT=1
+  set compiler_flags=-g -Wall -Wextra -std=c++17
+  set include_flags=-Isrc -I../rex/src -I../rex-core/include
+  set linker_flags=-L%build_dir% -lrex.lib -luser32 -lGdi32 -lWinmm -lrex-core.lib
+  set defines=-DREX_DEBUG=1 -DREX_RELEASE=0 -DREX_EXPORT=0 -DREX_IMPORT=1 -DDOCTEST_CONFIG_COLORS_NONE
 
   clang %cpp_filenames% %compiler_flags% -o %build_dir%%name%.exe %defines% %include_flags% %linker_flags%
   if %ERRORLEVEL% neq 0 (
