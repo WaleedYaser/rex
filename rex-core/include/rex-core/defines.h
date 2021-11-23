@@ -2,7 +2,7 @@
 
 // detection macros source: https://github.com/cxxstuff/cxx_detect
 
-// cleanup
+// cleanup.
 #undef REX_OS_WINDOWS
 #undef REX_OS_LINUX
 
@@ -12,7 +12,7 @@
 
 #undef REX_API
 
-// target operating systems
+// target operating systems.
 #if defined(_WIN32) || defined(_WINDOWS)
 # define REX_OS_WINDOWS (1)
 #elif defined(__linux__)
@@ -21,7 +21,7 @@
 # error "unsupported platform"
 #endif
 
-// target compilers
+// target compilers.
 #if defined(_MSC_VER) && defined(_MSC_FULL_VER)
 # define REX_MSC   (1)
 #elif defined(__GNUC__) && defined(__GNUC_MINOR__) && defined(__GNUC_PATCHLEVEL__)
@@ -32,7 +32,7 @@
 # error "unsupported compiler"
 #endif
 
-// import export
+// import export.
 // prefix any function you want to export with REX_API so any one linking to the dll or shared library can see it.
 #if REX_EXPORT
 # if REX_MSC

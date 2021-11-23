@@ -2,7 +2,7 @@
 
 #include "rex-core/defines.h"
 
-// switches to enable or disable specific logging level
+// switches to enable or disable specific logging level.
 #define REX_LOG_WARN_ENABLED  (1)
 #define REX_LOG_INFO_ENABLED  (1)
 #define REX_LOG_DEBUG_ENABLED (1)
@@ -11,7 +11,7 @@
 #define REX_LOG_FATAL_ENABLED (1)
 
 #if REX_RELEASE
-// disable debug and trace logging in release mode
+// disable debug and trace logging in release mode.
 # define REX_LOG_DEBUG_ENABLED (0)
 # define REX_LOG_TRACE_ENABLED (0)
 #endif
@@ -29,17 +29,16 @@ namespace rex::core
 
 	// log formated message based on it's log level, most propably you will not need to call this
 	// function directly and will use bellow macros.
-	//  level: REX_LOG_LEVEL enum to specify log level
-	//  message: string to log
-	//  ...: args to pass for formatting the message
+	//  level: REX_LOG_LEVEL enum to specify log level.
+	//  message: string to log.
+	//  ...: args to pass for formatting the message.
 	REX_API void
 	log(REX_LOG_LEVEL level, const char *message, ...);
 }
 
 #if REX_LOG_TRACE_ENABLED == 1
-// __VA_ARGS__: accept variable number of arguments in macro
-// we add '##' before __VA_ARGS__ to remove extra ',' before it if variable arguments are
-// omitted or empty.
+// __VA_ARGS__: accept variable number of arguments in macro.
+// we add '##' before __VA_ARGS__ to remove extra ',' before it if variable arguments are omitted or empty.
 # define rex_log_trace(message, ...) rex::core::log(rex::core::REX_LOG_LEVEL_TRACE, message, ##__VA_ARGS__)
 #else
 # define rex_log_trace(message, ...) // do nothing

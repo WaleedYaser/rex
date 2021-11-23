@@ -3,17 +3,17 @@
 #include "rex-core/defines.h"
 #include "rex-core/types.h"
 
-// define/undefine based on whether you want to enable or disable assertion, most propably you will not need to disable it.
+// define/undefine based on whether you want to enable or disable assertion, most propably you wont need to disable it.
 #define REX_ASSERTION_ENABLED (1)
 
 namespace rex::core
 {
 	// report assertion failure by logging it, most propably you won't need to call this function outside the macros
 	// defined bellow.
-	//  expression: string for the failed expression
-	//  message: string to log as the reason for the failure
-	//  file: file where assertion failed
-	//  line: line in the file where assertion failed
+	//  expression: string for the failed expression.
+	//  message: string to log as the reason for the failure.
+	//  file: file where assertion failed.
+	//  line: line in the file where assertion failed.
 	REX_API void
 	report_assertion_failure(const char *expression, const char *message, const char *file, i32 line);
 }
@@ -26,8 +26,7 @@ namespace rex::core
 // __builtin_trap: not continue next instruction
 #  define rex_debug_break() __builtin_trap()
 # endif
-
-// assert an expression in release and debug mode
+// assert that the expression is true
 # define rex_assert(expr)                                                   \
 {                                                                           \
 	if (!(expr))                                                            \
@@ -36,8 +35,7 @@ namespace rex::core
 		rex_debug_break();                                                  \
 	}                                                                       \
 }
-
-// assert an expression and report error message in release and debug mode
+// assert that the expression is true, report message otherwise
 # define rex_assert_msg(expr, message)                                           \
 {                                                                                \
 	if (!(expr))                                                                 \
@@ -46,7 +44,6 @@ namespace rex::core
 		rex_debug_break();                                                       \
 	}                                                                            \
 }
-
 #else
 # define rex_assert(expr)              // do nothing
 # define rex_assert_msg(expr, message) // do nothing

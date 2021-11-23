@@ -7,9 +7,9 @@
 
 namespace rex::core
 {
-	// internal function to map MP_COLOR to u8
-	static u8
-	_mp_color_to_u8(CONSOLE_COLOR color)
+	// internal function to map CONSOLE_COLOR to u8
+	inline static u8
+	_console_color_to_u8(CONSOLE_COLOR color)
 	{
 		switch (color)
 		{
@@ -22,6 +22,8 @@ namespace rex::core
 		}
 	}
 
+	// API
+
 	void
 	console_write(const char *message, CONSOLE_COLOR color)
 	{
@@ -30,7 +32,7 @@ namespace rex::core
 		CONSOLE_SCREEN_BUFFER_INFO info = {};
 		GetConsoleScreenBufferInfo(console_handle, &info);
 
-		SetConsoleTextAttribute(console_handle, _mp_color_to_u8(color));
+		SetConsoleTextAttribute(console_handle, _console_color_to_u8(color));
 		OutputDebugStringA(message);
 		u64 length = strnlen(message, 2 * 1024);
 		WriteConsoleA(console_handle, message, (DWORD)length, NULL, NULL);
@@ -46,7 +48,7 @@ namespace rex::core
 		CONSOLE_SCREEN_BUFFER_INFO info = {};
 		GetConsoleScreenBufferInfo(console_handle, &info);
 
-		SetConsoleTextAttribute(console_handle, _mp_color_to_u8(color));
+		SetConsoleTextAttribute(console_handle, _console_color_to_u8(color));
 		OutputDebugStringA(message);
 		u64 length = strnlen(message, 2 * 1024);
 		WriteConsoleA(console_handle, message, (DWORD)length, NULL, NULL);
