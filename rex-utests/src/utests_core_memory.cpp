@@ -1,4 +1,5 @@
 #include <rex-core/memory.h>
+
 #include "doctest.h"
 
 TEST_CASE("[rex-core]: memory")

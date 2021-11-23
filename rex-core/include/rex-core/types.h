@@ -56,22 +56,6 @@ inline static constexpr i64 I64_MAX = 9'223'372'036'854'775'807ll;
 inline static constexpr f32 F32_MAX = 3.402823466e+38f;        // max value
 inline static constexpr f64 F64_MAX = 1.7976931348623158e+308; // max value
 
-// check that the types has the correct limits
-// static_assert(U8_MIN  == 0);
-// static_assert(U16_MIN == 0);
-// static_assert(U32_MIN == 0);
-// static_assert(U64_MIN == 0);
-
-// static_assert(i8 (I8_MIN  - 1) == I8_MAX);
-// static_assert(i16(I16_MIN - 1) == I16_MAX);
-// static_assert(i32(I32_MIN - 1ll) == I32_MAX);
-// static_assert(i64(I64_MIN - 1) == I64_MAX);
-
-// static_assert(i8 (I8_MAX  + 1) == I8_MIN);
-// static_assert(i16(I16_MAX + 1) == I16_MIN);
-// static_assert(i32(I32_MAX + 1) == I32_MIN);
-// static_assert(i64(I64_MAX + 1) == I64_MIN);
-
 // vector types
 template <typename T>
 union V2
@@ -87,7 +71,7 @@ union V2
 };
 
 template <typename T>
-struct V3
+union V3
 {
 	struct { T x, y, z; };
 	struct { T u, v, w; };
@@ -110,7 +94,7 @@ struct V3
 };
 
 template <typename T>
-struct V4
+union V4
 {
 	struct { T x, y, z, w; };
 	struct { T r, g, b, a; };
