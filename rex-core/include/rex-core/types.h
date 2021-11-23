@@ -66,8 +66,8 @@ union V2
 	struct { T width, height; };
 	T values[2];
 
-	inline T &operator[](u8 index) { return values[index]; }
-	inline const T &operator[](u8 index) const { return values[index]; }
+	inline T& operator[](u8 index) { return values[index]; }
+	inline const T& operator[](u8 index) const { return values[index]; }
 };
 
 template <typename T>
@@ -89,8 +89,8 @@ union V3
 
 	T values[3];
 
-	inline T &operator[](u8 index) { return values[index]; }
-	inline const T &operator[](u8 index) const { return values[index]; }
+	inline T& operator[](u8 index) { return values[index]; }
+	inline const T& operator[](u8 index) const { return values[index]; }
 };
 
 template <typename T>
@@ -114,8 +114,8 @@ union V4
 
 	T values[4];
 
-	inline T &operator[](u8 index) { return values[index]; }
-	inline const T &operator[](u8 index) const { return values[index]; }
+	inline T& operator[](u8 index) { return values[index]; }
+	inline const T& operator[](u8 index) const { return values[index]; }
 };
 
 // alias common vector types
