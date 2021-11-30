@@ -12,7 +12,6 @@ namespace rex::core
 	REX_API Str str_literal(const char* c_str);
 	REX_API Str str_copy(Str& self, Allocator* allocator = default_allocator());
 	REX_API void str_free(Str& self);
-	REX_API void str_clear(Str& self);
 	REX_API void str_append(Str& self, const Str& other);
 	REX_API void str_append(Str& self, const char* other);
 
