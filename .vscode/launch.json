@@ -24,5 +24,13 @@
             "cwd": "${workspaceFolder}",
             "console": "externalTerminal"
         },
+        {
+            "name": "rex-scratch (windows)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/rex-scratch.exe",
+            "cwd": "${workspaceFolder}",
+            "console": "externalTerminal"
+        },
     ]
 }
