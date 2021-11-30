@@ -52,10 +52,10 @@ namespace rex::core
 
 	template <typename T>
 	inline static Vec<T>
-	vec_from(T* first, T* last, Allocator* allocator = default_allocator())
+	vec_from(const T* first, const T* last, Allocator* allocator = default_allocator())
 	{
-		auto self = vec_with_capacity(last - first, allocator);
-		for (T* it = first; it != last; ++it)
+		auto self = vec_with_capacity<T>(last - first, allocator);
+		for (const T* it = first; it != last; ++it)
 			self[self.count++] = *it;
 		return self;
 	}
