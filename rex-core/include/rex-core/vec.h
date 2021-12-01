@@ -132,7 +132,7 @@ namespace rex::core
 	}
 
 	template <typename T>
-	inline static T
+	inline static T&
 	vec_top(Vec<T>& self)
 	{
 		rex_assert(self.count > 0);

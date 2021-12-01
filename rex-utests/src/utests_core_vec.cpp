@@ -12,6 +12,7 @@ TEST_CASE("[rex-core]: vec")
 		CHECK(vec.ptr == nullptr);
 		CHECK(vec.count == 0);
 		CHECK(vec.capacity == 0);
+		CHECK(vec.allocator != nullptr);
 		vec_free(vec);
 
 		vec = vec_with_capacity<i32>(100);
