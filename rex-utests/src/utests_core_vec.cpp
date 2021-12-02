@@ -1,4 +1,5 @@
 #include <rex-core/vec.h>
+#include <rex-core/defer.h>
 
 #include "doctest.h"
 
@@ -8,95 +9,113 @@ TEST_CASE("[rex-core]: vec")
 
 	SUBCASE("vec creation")
 	{
-		auto vec = vec_new<i32>();
-		CHECK(vec.ptr == nullptr);
-		CHECK(vec.count == 0);
-		CHECK(vec.capacity == 0);
-		CHECK(vec.allocator != nullptr);
-		vec_free(vec);
+		{
+			auto vec = Vec<i32>::init();
+			rex_defer(vec.deinit());
 
-		vec = vec_with_capacity<i32>(100);
-		CHECK(vec.ptr != nullptr);
-		CHECK(vec.count == 0);
-		CHECK(vec.capacity == 100);
-		vec_free(vec);
+			CHECK(vec.ptr == nullptr);
+			CHECK(vec.count == 0);
+			CHECK(vec.capacity == 0);
+			CHECK(vec.allocator != nullptr);
+		}
 
-		vec = vec_with_count<i32>(100);
-		CHECK(vec.ptr != nullptr);
-		CHECK(vec.count == 100);
-		CHECK(vec.capacity == 100);
-		vec_free(vec);
+		{
+			auto vec = Vec<i32>::with_capacity(100);
+			rex_defer(vec.deinit());
 
-		vec = vec_from({1, 2, 3, 4, 5});
-		CHECK(vec.ptr != nullptr);
-		CHECK(vec.count == 5);
-		CHECK(vec.capacity == 5);
-		CHECK(vec[0] == 1);
-		CHECK(vec[1] == 2);
-		CHECK(vec[2] == 3);
-		CHECK(vec[3] == 4);
-		CHECK(vec[4] == 5);
-		vec_free(vec);
+			CHECK(vec.ptr != nullptr);
+			CHECK(vec.count == 0);
+			CHECK(vec.capacity == 100);
+		}
+
+		{
+			auto vec = Vec<i32>::with_count(100);
+			rex_defer(vec.deinit());
+
+			CHECK(vec.ptr != nullptr);
+			CHECK(vec.count == 100);
+			CHECK(vec.capacity == 100);
+		}
+
+		{
+			auto vec = Vec<i32>::from({1, 2, 3, 4, 5});
+			rex_defer(vec.deinit());
+
+			CHECK(vec.ptr != nullptr);
+			CHECK(vec.count == 5);
+			CHECK(vec.capacity == 5);
+			CHECK(vec[0] == 1);
+			CHECK(vec[1] == 2);
+			CHECK(vec[2] == 3);
+			CHECK(vec[3] == 4);
+			CHECK(vec[4] == 5);
+		}
 	}
 
 	SUBCASE("vec fill")
 	{
-		auto vec = vec_with_count<f32>(50);
-		vec_fill(vec, 5.0f);
+		auto vec = Vec<f32>::with_count(50);
+		rex_defer(vec.deinit());
+
+		vec.fill(5.0f);
 		for (i64 i = 0; i < vec.count; ++i)
 			CHECK(vec[i] == 5.0f);
 	}
 
 	SUBCASE("vec reserve ")
 	{
-		auto vec = vec_with_capacity<i32>(10);
+		auto vec = Vec<i32>::with_capacity(10);
+		rex_defer(vec.deinit());
+
 		CHECK(vec.ptr != nullptr);
 		CHECK(vec.capacity == 10);
-		vec_reserve(vec, 20);
+		vec.reserve(20);
 		CHECK(vec.ptr != nullptr);
 		CHECK(vec.capacity == 30);
-		vec_free(vec);
 	}
 
 	SUBCASE("vec push/pop/top")
 	{
-		auto vec = vec_new<i32>();
+		auto vec = Vec<i32>::init();
+		rex_defer(vec.deinit());
+
 		for (i32 i = 0; i < 100; ++i)
-			vec_push(vec, i);
+			vec.push(i);
 		CHECK(vec.count == 100);
 
 		for (i64 i = 0; i < vec.count; ++i)
 			CHECK(vec[i] == i);
 
-		CHECK(vec_top(vec) == 99);
+		CHECK(vec.top() == 99);
 
 		for (i32 i = 0; i < 100; ++i)
-			CHECK(vec_pop(vec) == 99 - i);
+			CHECK(vec.pop() == 99 - i);
 
 		CHECK(vec.count == 0);
-		vec_free(vec);
 	}
 
 	SUBCASE("vec append")
 	{
-		auto vec1 = vec_from({0, 1, 2, 3, 4});
-		auto vec2 = vec_from({5, 6, 7, 8, 9});
+		auto vec1 = Vec<i32>::from({0, 1, 2, 3, 4});
+		rex_defer(vec1.deinit());
 
-		vec_append(vec1, vec2);
+		auto vec2 = Vec<i32>::from({5, 6, 7, 8, 9});
+		rex_defer(vec2.deinit());
+
+		vec1.append(vec2);
 		CHECK(vec1.count == 10);
 
 		for (i32 i = 0; i < (i32)vec1.count; ++i)
 			CHECK(vec1[i] == i);
-
-		vec_free(vec2);
-		vec_free(vec1);
 	}
 
 	SUBCASE("vec iterators")
 	{
-		auto vec = vec_from({0, 1, 2, 3, 4});
-		CHECK(begin(vec) == vec.ptr);
-		CHECK(end(vec) == vec.ptr + vec.count);
+		auto vec = Vec<i32>::from({0, 1, 2, 3, 4});
+		rex_defer(vec.deinit());
+
+		CHECK(vec.begin() == vec.ptr);
+		CHECK(vec.end() == vec.ptr + vec.count);
 
 		i32 i = 0;
 		for (auto v: vec)
@@ -112,7 +131,14 @@ TEST_CASE("[rex-core]: vec")
 		i = 1;
 		for (const auto& v: vec)
 			CHECK(v == i++);
+	}
 
-		vec_free(vec);
+	SUBCASE("vec destroy")
+	{
+		auto v = Vec<Vec<i32>>::init();
+		rex_defer(v.destroy());
+
+		v.push(Vec<i32>::from({1, 2, 3}));
+		v.push(Vec<i32>::from({4, 5, 6}));
 	}
 }

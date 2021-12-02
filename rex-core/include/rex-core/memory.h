@@ -8,6 +8,7 @@ namespace rex::core
 	// interface that each allocator needs to implement.
 	struct Allocator
 	{
+		virtual ~Allocator() = default;
 		// returns a valid pointer on success, nullptr on failure.
 		//  size: size of the required memory in bytes.
 		virtual void* alloc(u64 size) = 0;
