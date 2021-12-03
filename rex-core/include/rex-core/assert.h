@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rex-core/defines.h"
+#include "rex-core/exports.h"
 #include "rex-core/types.h"
 
 // define/undefine based on whether you want to enable or disable assertion, most propably you wont need to disable it.
@@ -14,7 +14,7 @@ namespace rex::core
 	//  message: string to log as the reason for the failure.
 	//  file: file where assertion failed.
 	//  line: line in the file where assertion failed.
-	REX_API void
+	REX_CORE_EXPORT void
 	report_assertion_failure(const char *expression, const char *message, const char *file, i32 line);
 }
 

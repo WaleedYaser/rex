@@ -1,13 +1,14 @@
-#include "rex.h"
+#include <rex-core/api.h>
+#include <rex-core/memory.h>
 
-#include "gltf.h"
-#include "geometry.h"
-#include "constants.h"
+#include "rex-raster/gltf.h"
+#include "rex-raster/geometry.h"
+#include "rex-raster/constants.h"
 
 #include "assert.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "rex-raster/stb_image.h"
 
 inline static Pixel operator*(Pixel p, float f) { return {p.r * f, p.g * f, p.b * f, p.a * f}; }
 inline static Pixel operator*(float f, Pixel p) { return {p.r * f, p.g * f, p.b * f, p.a * f}; }
@@ -32,10 +33,10 @@ str_concat(const char *a, const char *b)
 }
 
 inline static void
-init(Rex* self)
+init(Rex_Api* self)
 {
     // parse stl file
-    Content stl_data = self->file_read("../data/dino.stl");
+    Content stl_data = self->file_read("data/dino.stl");
     {
         unsigned char* ptr = stl_data.data;
         // skip header (80 bytes)
@@ -79,7 +80,7 @@ init(Rex* self)
                 break;
             }
         }
-        image_path = str_concat("../data/girl/", image_path);
+        image_path = str_concat("data/girl/", image_path);
 
         // load image file
         int width, height, channels;
@@ -104,7 +105,7 @@ init(Rex* self)
             auto buffer_length = json_find(buffer, "byteLength").as_int;
             auto buffer_uri = json_find(buffer, "uri").as_str;
 
-            auto bin_content = self->file_read(str_concat("../data/girl/", buffer_uri));
+            auto bin_content = self->file_read(str_concat("data/girl/", buffer_uri));
             assert(bin_content.size == buffer_length);
 
             // load only first mesh
@@ -178,7 +179,7 @@ init(Rex* self)
 }
 
 inline static void
-destroy(Rex* self)
+deinit(Rex_Api* self)
 {
     self->free(self->image.pixels);
     self->free(self->depth_buffer);
@@ -187,15 +188,9 @@ destroy(Rex* self)
     // self->free(self->normals);
 }
 
-inline static void
-reload(Rex* self)
-{
-    self->free(self->vertices);
-    // init(self);
-}
 
 inline static void
-loop(Rex* self)
+loop(Rex_Api* self)
 {
     auto& canvas = self->canvas;
 
@@ -401,13 +396,36 @@ loop(Rex* self)
     t = reverse ? t - dt : t + dt;
 }
 
-Rex_Api*
-rex_api()
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+__declspec(dllexport) Rex_Api*
+rex_api(Rex_Api* api, bool reload)
 {
-    static Rex_Api api;
-    api.init = init;
-    api.destory = destroy;
-    api.reload = reload;
-    api.loop = loop;
-    return &api;
+    if (api == nullptr)
+    {
+        auto self = rex::core::alloc_zeroed<Rex_Api>();
+        self->init = init;
+        self->deinit = deinit;
+        self->loop = loop;
+        return self;
+    }
+    else if (reload)
+    {
+        api->init = init;
+        api->deinit = deinit;
+        api->loop = loop;
+
+        return api;
+    }
+    else
+    {
+        rex::core::free(api);
+        return nullptr;
+    }
 }
+
+#ifdef __cplusplus
+}
+#endif

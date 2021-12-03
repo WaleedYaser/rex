@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rex-core/defines.h"
+#include "rex-core/exports.h"
 
 namespace rex::core
 {
@@ -16,12 +16,12 @@ namespace rex::core
 	// write a message to the console with the specified color.
 	//  message: string for the message.
 	//  color: CONSOLE_COLOR enum for the color.
-	REX_API void
+	REX_CORE_EXPORT void
 	console_write(const char *message, CONSOLE_COLOR color);
 
 	// write a message to the error console (if available) with the specified color.
 	//  message: string for the message.
 	//  color: CONSOLE_COLOR enum for the color.
-	REX_API void
+	REX_CORE_EXPORT void
 	console_write_error(const char *message, CONSOLE_COLOR color);
 }

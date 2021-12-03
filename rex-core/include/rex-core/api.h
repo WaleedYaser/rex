@@ -1,5 +1,9 @@
 #pragma once
 
+#include <stdbool.h>
+
+// TODO: cleanup
+
 typedef struct Pixel
 {
 	float r, g, b, a;
@@ -20,7 +24,7 @@ typedef struct Content
 struct Vec2;
 struct Vec3;
 
-typedef struct Rex
+typedef struct Rex_Api
 {
 	// owned values
 	Image canvas;
@@ -38,7 +42,7 @@ typedef struct Rex
 	float camera_z;
 
 	// values set from client
-	int quit;
+	bool quit;
 	int window_width, window_height;
 	float dt;
 
@@ -46,26 +50,10 @@ typedef struct Rex
 	void* (*alloc)(size_t size);
 	void  (*free)(void *ptr);
 	Content (*file_read)(const char* path);
-} Rex;
 
-typedef struct Rex_Api
-{
-	void (*init)(Rex* self);
-	void (*destory)(Rex* self);
-
-	void (*reload)(Rex* self);
-	void (*loop)(Rex* self);
+	void (*init)(Rex_Api* self);
+	void (*deinit)(Rex_Api* self);
+	void (*loop)(Rex_Api* self);
 } Rex_Api;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-__declspec(dllexport) Rex_Api*
-rex_api();
-
-#ifdef __cplusplus
-}
-#endif
-
-typedef Rex_Api* (*rex_api_proc)(void);
+typedef Rex_Api* (*rex_api_proc)(Rex_Api*, bool);

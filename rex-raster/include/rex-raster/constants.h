@@ -1,7 +1,7 @@
 #pragma once
 
-#include "rex.h"
-#include "geometry.h"
+#include <rex-core/api.h>
+#include "rex-raster/geometry.h"
 
 // colors
 static constexpr Pixel color_palette[] = {

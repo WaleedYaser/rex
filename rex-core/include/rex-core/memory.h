@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rex-core/defines.h"
+#include "rex-core/exports.h"
 #include "rex-core/types.h"
 
 namespace rex::core
@@ -17,7 +17,7 @@ namespace rex::core
 	};
 
 	// default allocator to use if you don't need any custom allocator.
-	REX_API Allocator* default_allocator();
+	REX_CORE_EXPORT Allocator* default_allocator();
 
 	// allocate the required size using the given allocator.
 	//  size: size of the required memory in bytes.

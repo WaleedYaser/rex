@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rex.h"
+#include <rex-core/api.h>
 #include "stdio.h"
 #include "assert.h"
 #include "stdlib.h"
@@ -460,10 +460,10 @@ json_find(JSON_Value object, const char* member)
 }
 
 inline static JSON
-gltf_load(Rex* self)
+gltf_load(Rex_Api* self)
 {
     // parse gltf file
-    Content gltf_data = self->file_read("../data/girl/scene.gltf");
+    Content gltf_data = self->file_read("data/girl/scene.gltf");
 
     Tokenizer tkz = Tokenizer{gltf_data, 0};
     JSON json = json_parse(&tkz);

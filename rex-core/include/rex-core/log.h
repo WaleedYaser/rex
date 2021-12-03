@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rex-core/defines.h"
+#include "rex-core/exports.h"
 
 // switches to enable or disable specific logging level.
 #define REX_LOG_WARN_ENABLED  (1)
@@ -32,7 +32,7 @@ namespace rex::core
 	//  level: REX_LOG_LEVEL enum to specify log level.
 	//  message: string to log.
 	//  ...: args to pass for formatting the message.
-	REX_API void
+	REX_CORE_EXPORT void
 	log(REX_LOG_LEVEL level, const char *message, ...);
 }
 

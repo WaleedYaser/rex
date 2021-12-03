@@ -2,15 +2,12 @@
 #define UNICODE
 #endif
 
-#include "rex.h"
+#include <rex-core/api.h>
 
 #include <windows.h>
 #include <assert.h>
 
-#include "defines.h"
-
-static Rex g_rex;
-static Rex_Api* g_api;
+static Rex_Api* g_rex;
 
 static DWORD* g_blt_bits;
 static int g_blt_size;
@@ -56,20 +53,20 @@ _file_read(const char* path)
 inline static void
 _paint(HWND hwnd)
 {
-    if (g_blt_size < g_rex.window_width * g_rex.window_height)
+    if (g_blt_size < g_rex->window_width * g_rex->window_height)
     {
         _free(g_blt_bits);
 
-        g_blt_bits = (DWORD*)_alloc(g_rex.window_width * g_rex.window_height * sizeof(DWORD));
+        g_blt_bits = (DWORD*)_alloc(g_rex->window_width * g_rex->window_height * sizeof(DWORD));
     }
 
     // construct color buffer
-    for (int i = 0; i < g_rex.canvas.width * g_rex.canvas.height; ++i)
+    for (int i = 0; i < g_rex->canvas.width * g_rex->canvas.height; ++i)
     {
         g_blt_bits[i] =
-            ((unsigned char)(g_rex.canvas.pixels[i].r * 255) << 16) |
-            ((unsigned char)(g_rex.canvas.pixels[i].g * 255) << 8) |
-            ((unsigned char)(g_rex.canvas.pixels[i].b * 255) << 0);
+            ((unsigned char)(g_rex->canvas.pixels[i].r * 255) << 16) |
+            ((unsigned char)(g_rex->canvas.pixels[i].g * 255) << 8) |
+            ((unsigned char)(g_rex->canvas.pixels[i].b * 255) << 0);
     }
 
     // blit color buffer to window
@@ -78,16 +75,16 @@ _paint(HWND hwnd)
 
     BITMAPINFO bitmap_info = {};
     bitmap_info.bmiHeader.biSize = sizeof(bitmap_info.bmiHeader);
-    bitmap_info.bmiHeader.biWidth = g_rex.canvas.width;
-    bitmap_info.bmiHeader.biHeight = -g_rex.canvas.height; // negative to have origin at top left corner
+    bitmap_info.bmiHeader.biWidth = g_rex->canvas.width;
+    bitmap_info.bmiHeader.biHeight = -g_rex->canvas.height; // negative to have origin at top left corner
     bitmap_info.bmiHeader.biPlanes = 1;
     bitmap_info.bmiHeader.biBitCount = 32;
     bitmap_info.bmiHeader.biCompression = BI_RGB;
 
     int copied_scan_lines = ::StretchDIBits(
         hdc,
-        0, 0, g_rex.window_width, g_rex.window_height, // destination
-        0, 0, g_rex.canvas.width, g_rex.canvas.height, // source
+        0, 0, g_rex->window_width, g_rex->window_height, // destination
+        0, 0, g_rex->canvas.width, g_rex->canvas.height, // source
         g_blt_bits,
         &bitmap_info,
         DIB_RGB_COLORS,
@@ -104,13 +101,13 @@ _wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     switch (uMsg)
     {
     case WM_DESTROY:
-        g_rex.quit = true;
+        g_rex->quit = true;
         PostQuitMessage(0);
         return 0;
     case WM_SIZE:
-        g_rex.window_width = LOWORD(lParam);
-        g_rex.window_height = HIWORD(lParam);
-        g_api->loop(&g_rex);
+        g_rex->window_width = LOWORD(lParam);
+        g_rex->window_height = HIWORD(lParam);
+        g_rex->loop(g_rex);
         _paint(hwnd);
         break;
     };
@@ -122,7 +119,7 @@ inline static void
 _hot_reload_rex_module()
 {
     WIN32_FILE_ATTRIBUTE_DATA data = {};
-    bool res = GetFileAttributesEx(L"rex.dll", GetFileExInfoStandard, &data);
+    bool res = GetFileAttributesEx(L"rex-raster.dll", GetFileExInfoStandard, &data);
     assert(res && "failed to get 'rex.dll'attributes");
     if (res == false)
         return;
@@ -138,16 +135,12 @@ _hot_reload_rex_module()
         assert(res && "failed to unload rex.dll");
     }
 
-    bool copy_succeeded = CopyFile(L"rex.dll", L"rex_tmp.dll", false);
+    bool copy_succeeded = CopyFile(L"rex-raster.dll", L"rex-raster_tmp.dll", false);
 
-    rex_dll = LoadLibrary(L"rex_tmp.dll");
+    rex_dll = LoadLibrary(L"rex-raster_tmp.dll");
     assert(rex_dll && "failed to load rex.dll");
 
-    Rex_Api* old_api = g_api;
-    g_api = ((rex_api_proc)GetProcAddress(rex_dll, "rex_api"))();
-    if (old_api == nullptr)
-        g_api->init(&g_rex);
-    g_api->reload(&g_rex);
+    g_rex = ((rex_api_proc)GetProcAddress(rex_dll, "rex_api"))(g_rex, true);
 
     if (copy_succeeded)
         last_time = data.ftLastWriteTime;
@@ -173,12 +166,13 @@ main()
     bool res = SetCurrentDirectory(buffer);
     assert(res && "SetCurrentDirectory failed");
 
-    // initialize platform functions
-    g_rex.alloc = _alloc;
-    g_rex.free = _free;
-    g_rex.file_read = _file_read;
     // load rex module for the first time and initialize it
     _hot_reload_rex_module();
+    // initialize platform functions
+    g_rex->alloc = _alloc;
+    g_rex->free = _free;
+    g_rex->file_read = _file_read;
+    g_rex->init(g_rex);
 
     // window creation
     WNDCLASSEX wcx = {};
@@ -222,7 +216,7 @@ main()
         }
 
         // check for quit
-        if (g_rex.quit)
+        if (g_rex->quit)
             break;
 
         // timing in milliseconds (target 30fps)
@@ -240,13 +234,13 @@ main()
         SetWindowText(hwnd, buffer);
 
         // rex loop
-        g_rex.dt = total_ms * 0.001f;
-        g_api->loop(&g_rex);
+        g_rex->dt = total_ms * 0.001f;
+        g_rex->loop(g_rex);
         _paint(hwnd);
     }
 
     // free resources
     _free(g_blt_bits);
     DestroyWindow(hwnd);
-    g_api->destory(&g_rex);
+    g_rex->deinit(g_rex);
 }

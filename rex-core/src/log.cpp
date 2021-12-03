@@ -21,7 +21,7 @@ namespace rex::core
 		// get variadic arguments after message and format it into formated message, note that we have
 		// a 32K limmit for the formated message.
 		char formated_message[32 * 1024];
-		__builtin_va_list arg_ptr;
+		va_list arg_ptr;
 		va_start(arg_ptr, message);
 		vsnprintf(formated_message, sizeof(formated_message), message, arg_ptr);
 		va_end(arg_ptr);
@@ -29,7 +29,7 @@ namespace rex::core
 		// add level string to formated message and store result in message_with_level, we have the
 		// same size limit for message_with_level
 		char message_with_level[32 * 1024];
-		sprintf(message_with_level, "%s%s\n", level_strings[level], formated_message);
+		sprintf_s(message_with_level, sizeof(message_with_level), "%s%s\n", level_strings[level], formated_message);
 
 		CONSOLE_COLOR color;
 		switch (level)

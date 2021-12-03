@@ -20,6 +20,7 @@ namespace rex::core
 			case CONSOLE_COLOR_FG_RED: return 4;
 			case CONSOLE_COLOR_BG_RED: return 64;
 		}
+		return 0;
 	}
 
 	// API
