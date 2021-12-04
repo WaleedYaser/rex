@@ -405,7 +405,8 @@ rex_api(Rex_Api* api, bool reload)
 {
     if (api == nullptr)
     {
-        auto self = rex::core::alloc_zeroed<Rex_Api>();
+        auto self = (Rex_Api*)rex_alloc(sizeof(Rex_Api));
+        *self = {};
         self->init = init;
         self->deinit = deinit;
         self->loop = loop;
@@ -421,7 +422,7 @@ rex_api(Rex_Api* api, bool reload)
     }
     else
     {
-        rex::core::free(api);
+        rex_dealloc(api);
         return nullptr;
     }
 }

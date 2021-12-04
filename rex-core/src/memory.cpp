@@ -8,44 +8,78 @@
 // TODO: implement malloc http://dmitrysoshnikov.com/compilers/writing-a-memory-allocator/
 namespace rex::core
 {
-	struct Default_Allocator: Allocator
+	struct Node
 	{
-		std::atomic<i64> leaked;
+		const char* file;
+		const char* function;
+		u64 line;
+		u64 size;
+		Node* next;
+		Node* prev;
+	};
+
+	struct Rex_Allocator: IAllocator
+	{
+		std::atomic<i64> leaked = 0;
+		Node* top = nullptr;
 
 		void*
-		alloc(u64 size) override
+		alloc(u64 size, const char* file, const char* function, u64 line) override
 		{
-			auto ptr = (i64*)::malloc(size + sizeof(i64));
-			rex_assert(ptr);
-			*ptr++ = size;
+			auto node = (Node*)::malloc(size + sizeof(Node));
+			rex_assert(node);
+
+			node->file = file;
+			node->function = function;
+			node->line = line;
+			node->size = size;
+			node->next = nullptr;
+			node->prev = top;
+
+			if (top)
+				top->next = node;
+			top = node;
+
 			leaked.fetch_add(size);
-			return ptr;
+
+			return node + 1;
 		}
 
 		void
-		free(void* old_ptr) override
+		dealloc(void* ptr) override
 		{
-			if (old_ptr == nullptr)
+			if (ptr == nullptr)
 				return;
 
-			auto ptr = (i64*)old_ptr - 1;
-			auto size = *ptr;
-			leaked.fetch_sub(size);
+			auto node = (Node*)ptr - 1;
+			leaked.fetch_sub(node->size);
 			rex_assert_msg(leaked >= 0, "leaked memory can't be negative");
-			::free(ptr);
+
+			if (node == top)
+				top = node->prev;
+			if (node->next)
+				node->next->prev = node->prev;
+			if (node->prev)
+				node->prev->next = node->next;
+
+			::free(node);
 		}
 
-		~Default_Allocator()
+		~Rex_Allocator()
 		{
 			if (leaked.load() > 0)
-				rex_log_warn("Leaked memory: %lld", leaked.load());
+			{
+				rex_log_warn("Total leaked memory: %lld", leaked.load());
+				for (auto it = top; it != nullptr; it = it->prev)
+					rex_log_warn("(%lld bytes) at %s(%lld): %s", it->size, it->file, it->line, it->function);
+			}
 		}
 	};
 
-	Allocator*
-	default_allocator()
+	Allocator
+	rex_allocator()
 	{
-		static Default_Allocator self = {};
+		static Rex_Allocator self = {};
 		return &self;
 	}
 }

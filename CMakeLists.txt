@@ -22,6 +22,11 @@ add_subdirectory(rex-scratch)
 get_target_property(REX_CORE_DIR rex-core SOURCE_DIR)
 configure_file(${REX_CORE_DIR}/include/rex-core/version.h.in ${REX_CORE_DIR}/include/rex-core/version.h)
 
+add_custom_target(rex-deploy-data ALL
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data/ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/data/
+	COMMENT "[rex-deploy]: deploy rex data."
+)
+
 install(TARGETS rex-viewer rex-raster RUNTIME DESTINATION ".")
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/data DESTINATION ".")
 

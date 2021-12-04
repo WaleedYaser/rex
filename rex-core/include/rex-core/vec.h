@@ -14,16 +14,16 @@ namespace rex::core
 		T* ptr;
 		i64 count;
 		i64 capacity;
-		Allocator* allocator;
+		Allocator allocator;
 
-		static Vec init(Allocator* allocator = default_allocator());
-		static Vec with_capacity(i64 capacity, Allocator* allocator = default_allocator());
-		static Vec with_count(i64 count, Allocator* allocator = default_allocator());
-		static Vec from(const T* first, const T* last, Allocator* allocator = default_allocator());
-		static Vec from(std::initializer_list<T> values, Allocator* allocator = default_allocator());
+		static Vec init(Allocator allocator = rex_allocator());
+		static Vec with_capacity(i64 capacity, Allocator allocator = rex_allocator());
+		static Vec with_count(i64 count, Allocator allocator = rex_allocator());
+		static Vec from(const T* first, const T* last, Allocator allocator = rex_allocator());
+		static Vec from(std::initializer_list<T> values, Allocator allocator = rex_allocator());
 
-		Vec copy(Allocator* allocator = default_allocator());
-		Vec clone(Allocator* allocator = default_allocator());
+		Vec copy(Allocator allocator = rex_allocator());
+		Vec clone(Allocator allocator = rex_allocator());
 		void deinit();
 		void destroy();
 
@@ -47,7 +47,7 @@ namespace rex::core
 	};
 
 	template <typename T>
-	Vec<T> Vec<T>::init(Allocator* allocator)
+	Vec<T> Vec<T>::init(Allocator allocator)
 	{
 		Vec<T> self = {};
 		self.allocator = allocator;
@@ -55,18 +55,18 @@ namespace rex::core
 	}
 
 	template <typename T>
-	Vec<T> Vec<T>::with_capacity(i64 capacity, Allocator* allocator)
+	Vec<T> Vec<T>::with_capacity(i64 capacity, Allocator allocator)
 	{
 		Vec<T> self = {};
 		self.allocator = allocator;
-		self.ptr = (T*)self.allocator->alloc(capacity * sizeof(T));
+		self.ptr = (T*)rex_alloc_from(allocator, capacity * sizeof(T));
 		rex_assert(self.ptr);
 		self.capacity = capacity;
 		return self;
 	}
 
 	template <typename T>
-	Vec<T> Vec<T>::with_count(i64 count, Allocator* allocator)
+	Vec<T> Vec<T>::with_count(i64 count, Allocator allocator)
 	{
 		auto self = Vec<T>::with_capacity(count, allocator);
 		self.count = count;
@@ -74,7 +74,7 @@ namespace rex::core
 	}
 
 	template <typename T>
-	Vec<T> Vec<T>::from(const T* first, const T* last, Allocator* allocator)
+	Vec<T> Vec<T>::from(const T* first, const T* last, Allocator allocator)
 	{
 		auto self = Vec<T>::with_capacity(last - first, allocator);
 		for (const T* it = first; it != last; ++it)
@@ -83,13 +83,13 @@ namespace rex::core
 	}
 
 	template <typename T>
-	Vec<T> Vec<T>::from(std::initializer_list<T> values, Allocator* allocator)
+	Vec<T> Vec<T>::from(std::initializer_list<T> values, Allocator allocator)
 	{
 		return Vec<T>::from(values.begin(), values.end(), allocator);
 	}
 
 	template <typename T>
-	Vec<T> Vec<T>::copy(Allocator* allocator)
+	Vec<T> Vec<T>::copy(Allocator allocator)
 	{
 		auto other = Vec<T>::with_capacity(count, allocator);
 		for (i64 i = 0; i < count; ++i)
@@ -98,7 +98,7 @@ namespace rex::core
 	}
 
 	template <typename T>
-	Vec<T> Vec<T>::clone(Allocator* allocator)
+	Vec<T> Vec<T>::clone(Allocator allocator)
 	{
 		if constexpr (std::is_compound_v<T>)
 		{
@@ -116,7 +116,7 @@ namespace rex::core
 	template <typename T>
 	void Vec<T>::deinit()
 	{
-		allocator->free(ptr);
+		rex_dealloc_from(allocator, ptr);
 		*this = {};
 	}
 
@@ -142,11 +142,11 @@ namespace rex::core
 	{
 		capacity += additional_capacity;
 		auto old_ptr = ptr;
-		ptr = (T*)allocator->alloc(capacity * sizeof(T));
+		ptr = (T*)rex_alloc_from(allocator, capacity*sizeof(T));
 		rex_assert(ptr);
 		for (i64 i = 0; i < count; ++i)
 			ptr[i] = old_ptr[i];
-		allocator->free(old_ptr);
+		rex_dealloc_from(allocator, old_ptr);
 	}
 
 	template <typename T>
