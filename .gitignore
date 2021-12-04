@@ -4,6 +4,7 @@
 # CMake
 build
 **exports.h
+rex-core/include/rex-core/version.h
 
 # Prerequisites
 *.d

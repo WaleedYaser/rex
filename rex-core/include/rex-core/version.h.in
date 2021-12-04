@@ -1,0 +1,5 @@
+#pragma once
+
+#define REX_VERSION_MAJOR @rex_VERSION_MAJOR@
+#define REX_VERSION_MINOR @rex_VERSION_MINOR@
+#define REX_VERSION_PATCH @rex_VERSION_PATCH@

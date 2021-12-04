@@ -5,6 +5,10 @@ target_link_libraries(rex-viewer PRIVATE
 	rex-raster
 )
 
+if (REX_HOT_RELOAD)
+	target_compile_definitions(rex-viewer PRIVATE -DREX_HOT_RELOAD=1)
+endif()
+
 target_link_libraries(rex-viewer PRIVATE Winmm)
 
 target_compile_options(rex-viewer PRIVATE

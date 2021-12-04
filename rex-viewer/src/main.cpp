@@ -3,6 +3,7 @@
 #endif
 
 #include <rex-core/api.h>
+#include <rex-core/version.h>
 
 #include <windows.h>
 #include <assert.h>
@@ -116,8 +117,9 @@ _wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 
 inline static void
-_hot_reload_rex_module()
+_load_rex_module()
 {
+#if REX_HOT_RELOAD == 1
     WIN32_FILE_ATTRIBUTE_DATA data = {};
     bool res = GetFileAttributesEx(L"rex-raster.dll", GetFileExInfoStandard, &data);
     assert(res && "failed to get 'rex.dll'attributes");
@@ -144,6 +146,12 @@ _hot_reload_rex_module()
 
     if (copy_succeeded)
         last_time = data.ftLastWriteTime;
+#else
+    if (g_rex) return;
+    auto rex_dll = LoadLibrary(L"rex-raster.dll");
+    assert(rex_dll && "failed to load rex.dll");
+    g_rex = ((rex_api_proc)GetProcAddress(rex_dll, "rex_api"))(g_rex, true);
+#endif
 }
 
 #if 0
@@ -167,7 +175,7 @@ main()
     assert(res && "SetCurrentDirectory failed");
 
     // load rex module for the first time and initialize it
-    _hot_reload_rex_module();
+    _load_rex_module();
     // initialize platform functions
     g_rex->alloc = _alloc;
     g_rex->free = _free;
@@ -205,7 +213,7 @@ main()
     // game loop
     while (true)
     {
-        _hot_reload_rex_module();
+        _load_rex_module();
 
         // consume window events
         MSG msg = {};
@@ -230,7 +238,8 @@ main()
         LONGLONG total_ms = (ticks.QuadPart - prev_ticks.QuadPart) * 1000 / frequency.QuadPart;
         prev_ticks = ticks;
 
-        wsprintf(buffer, L"rex [total: %dms, busy: %dms, free: %dms]", total_ms, busy_ms, total_ms - busy_ms);
+        wsprintf(buffer, L"rex v%d.%d.%d [total: %dms, busy: %dms, free: %dms]",
+            REX_VERSION_MAJOR, REX_VERSION_MINOR, REX_VERSION_PATCH, total_ms, busy_ms, total_ms - busy_ms);
         SetWindowText(hwnd, buffer);
 
         // rex loop
