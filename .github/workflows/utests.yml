@@ -1,0 +1,30 @@
+name: unit-tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        build_type: [Debug, Release]
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: Build
+      run: cmake --build build --config ${{ matrix.build_type }} -j
+
+    - name: Test
+      working-directory: build
+      run: ctest -C ${{ matrix.build_type }}

@@ -1,0 +1,33 @@
+name: package
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        build_type: [Release]
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: Build
+      run: cmake --build build --config ${{ matrix.build_type }} -j
+
+    - name: Pack
+      working-directory: build
+      run: cpack -G ZIP
+
+    - name: Upload
+      uses: actions/upload_artifacts@v2
+      with:
+        path: build/*.zip
+        if-no-files-found: error
