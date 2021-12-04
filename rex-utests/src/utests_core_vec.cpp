@@ -10,6 +10,15 @@ TEST_CASE("[rex-core]: vec")
 	SUBCASE("vec creation")
 	{
 		{
+			auto vec = Vec<i32>::with_capacity(200, frame_allocator());
+			vec = Vec<i32>::with_capacity(400, frame_allocator());
+			vec = Vec<i32>::with_capacity(10000, frame_allocator());
+			frame_allocator()->clear();
+			vec = Vec<i32>::with_capacity(10000, frame_allocator());
+			vec = Vec<i32>::with_capacity(300 * 1024 * 1024, frame_allocator());
+			frame_allocator()->clear();
+		}
+		{
 			auto vec = Vec<i32>::init();
 			rex_defer(vec.deinit());
 

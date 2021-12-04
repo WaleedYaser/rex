@@ -14,7 +14,22 @@ namespace rex::core
 
 	using Allocator = IAllocator*;
 
+	struct Frame_Node;
+	struct Frame_Allocator: IAllocator
+	{
+		Frame_Node* head;
+		u64 peak_size;
+		u64 frame_size;
+
+		~Frame_Allocator() override;
+		void* alloc(u64 size, const char* file, const char* func, u64 line) override;
+		void dealloc(void* ptr) override;
+
+		void clear();
+	};
+
 	REX_CORE_EXPORT Allocator rex_allocator();
+	REX_CORE_EXPORT Frame_Allocator* frame_allocator();
 }
 
 #define rex_alloc_from(allocator, size) allocator->alloc(size, __FILE__, __FUNCTION__, __LINE__)
