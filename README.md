@@ -1,6 +1,8 @@
 # REX
 [![Project Status: Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![unit-tests](https://github.com/WaleedYaser/rex/actions/workflows/utests.yml/badge.svg)](https://github.com/WaleedYaser/rex/actions/workflows/utests.yml)
+![Lines of code](https://img.shields.io/tokei/lines/github/WaleedYaser/rex)
+![GitHub repo size](https://img.shields.io/github/repo-size/WaleedYaser/rex)
 
 Rex is a side project I'm working on now for the purpose of learning more about graphics programming and rendering. Currently it's just a 3D software rasterizer.
 
@@ -8,7 +10,7 @@ Rex is a side project I'm working on now for the purpose of learning more about 
 - Windows
 
 ## Build and install
-- Download and install CMake (at least version 3.16): https://cmake.org/download/
+- Download and install CMake (at least version 3.12): https://cmake.org/download/
 - Configure and build the project by executing the following commands:
 	```
 	cmake -B build -DCMAKE_BUILD_TYPE=Release
