@@ -7,14 +7,16 @@
 // TODO: implement malloc http://dmitrysoshnikov.com/compilers/writing-a-memory-allocator/
 namespace rex::core
 {
+	static constexpr u64 FRAME_ALLOCATOR_INITIAL_CAPACITY = 256 * 1024 * 1024;
+
 	struct Rex_Allocator: IAllocator
 	{
 		struct Node
 		{
 			const char* file;
 			const char* function;
-			u64 line;
-			u64 size;
+			sz line;
+			sz size;
 			Node* next;
 			Node* prev;
 		};
@@ -23,7 +25,7 @@ namespace rex::core
 		Node* top;
 
 		void*
-		alloc(u64 size, const char* file, const char* function, u64 line) override
+		alloc(sz size, const char* file, const char* function, i32 line) override
 		{
 			auto node = (Node*)::malloc(size + sizeof(Node));
 			rex_assert(node);
@@ -70,12 +72,10 @@ namespace rex::core
 			{
 				rex_log_warn("Total leaked memory: %lld", leaked);
 				for (auto it = top; it != nullptr; it = it->prev)
-					rex_log_warn("(%lld bytes) at %s(%lld): %s", it->size, it->file, it->line, it->function);
+					rex_log_warn("\t(%lld bytes) at %s(%lld): %s", it->size, it->file, it->line, it->function);
 			}
 		}
 	};
-
-	static constexpr u64 initial_capacity = 256 * 1024 * 1024;
 
 	struct Frame_Node
 	{
@@ -85,7 +85,7 @@ namespace rex::core
 	};
 
 	void*
-	Frame_Allocator::alloc(u64 size, const char*, const char*, u64)
+	Frame_Allocator::alloc(sz size, const char*, const char*, i32)
 	{
 		frame_size += size;
 		peak_size = frame_size > peak_size ? frame_size : peak_size;
@@ -150,33 +150,42 @@ namespace rex::core
 	Frame_Allocator::~Frame_Allocator()
 	{
 		clear();
-		rex_log_info("Frame allocator initial capacity: %lld bytes and peak: %lld bytes", initial_capacity, peak_size);
+		rex_log_info("Frame allocator initial capacity: %lld bytes and peak: %lld bytes",
+			FRAME_ALLOCATOR_INITIAL_CAPACITY, peak_size);
 		rex_dealloc(head);
+	}
+
+	struct _Memory
+	{
+		Rex_Allocator rex;
+		Frame_Allocator frame;
+	};
+
+	inline static _Memory*
+	_memory()
+	{
+		static _Memory self = {};
+		return &self;
 	}
 
 	Allocator
 	rex_allocator()
 	{
-		static Rex_Allocator self = {};
-		return &self;
+		return &_memory()->rex;
 	}
 
 	Frame_Allocator*
 	frame_allocator()
 	{
-		// TODO: this line is to make sure rex_allocator is constructed before frame_allocator so destructors are called
-		// in the correct order
-		rex_allocator();
-
-		static Frame_Allocator self = {};
-		if (self.head == nullptr)
+		auto self = &_memory()->frame;
+		if (self->head == nullptr)
 		{
-			self.head = (Frame_Node*)rex_alloc(initial_capacity + sizeof(Frame_Node));
-			rex_assert(self.head);
-			self.head->capacity = initial_capacity;
-			self.head->size = 0;
-			self.head->next = nullptr;
+			self->head = (Frame_Node*)rex_alloc(FRAME_ALLOCATOR_INITIAL_CAPACITY + sizeof(Frame_Node));
+			rex_assert(self->head);
+			self->head->capacity = FRAME_ALLOCATOR_INITIAL_CAPACITY;
+			self->head->size = 0;
+			self->head->next = nullptr;
 		}
-		return &self;
+		return self;
 	}
 }

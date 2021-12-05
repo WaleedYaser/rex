@@ -1,50 +1,85 @@
 #include <rex-core/memory.h>
+#include <rex-core/defer.h>
 
 #include "doctest.h"
 
 TEST_CASE("[rex-core]: memory")
 {
-	SUBCASE("default allocator")
+	SUBCASE("default alloc")
 	{
-		auto allocator = rex::core::default_allocator();
-
-		void* ptr = allocator->alloc(1024);
+		auto ptr = rex_alloc(100);
+		rex_defer(rex_dealloc(ptr));
 		CHECK(ptr != nullptr);
-		allocator->free(ptr);
 	}
 
-	SUBCASE("alloc")
+	SUBCASE("default alloc type")
 	{
-		void* ptr = rex::core::alloc(1024);
+		struct Foo { int x; int y; };
+		auto ptr = rex_alloc_T(Foo);
+		rex_defer(rex_dealloc(ptr));
 		CHECK(ptr != nullptr);
-		rex::core::free(ptr);
 	}
 
-	SUBCASE("alloc zeroed")
+	SUBCASE("default alloc array")
 	{
-		u64 size = 100;
-		void* ptr = rex::core::alloc_zeroed(size);
-		for (u64 i = 0; i < size; ++i)
-			CHECK(((u8*)ptr)[i] == 0);
-		rex::core::free(ptr);
-	}
-
-	SUBCASE("alloc type")
-	{
-		struct S { u32 x, y; };
-
-		S* ptr = rex::core::alloc<S>();
+		auto ptr = rex_alloc_N(int, 100);
+		rex_defer(rex_dealloc(ptr));
 		CHECK(ptr != nullptr);
-		rex::core::free(ptr);
 	}
 
-	SUBCASE("alloc zeroed type")
+	SUBCASE("default alloc zeroed")
 	{
-		struct S { u32 x, y; };
-
-		S* ptr = rex::core::alloc_zeroed<S>();
+		struct Foo { int x; int y; };
+		auto ptr = rex_alloc_zeroed_T(Foo);
+		rex_defer(rex_dealloc(ptr));
+		CHECK(ptr != nullptr);
 		CHECK(ptr->x == 0);
 		CHECK(ptr->y == 0);
-		rex::core::free(ptr);
+	}
+
+	SUBCASE("default alloc zeroed array")
+	{
+		auto ptr = rex_alloc_zeroed_N(int, 100);
+		rex_defer(rex_dealloc(ptr));
+		CHECK(ptr != nullptr);
+		for (sz i = 0; i < 100; ++i)
+			CHECK(ptr[i] == 0);
+	}
+
+	SUBCASE("frame alloc")
+	{
+		auto ptr = rex_alloc_from(rex::core::frame_allocator(), 100);
+		rex_defer(rex_dealloc_from(rex::core::frame_allocator(), ptr));
+		CHECK(ptr != nullptr);
+	}
+
+	SUBCASE("frame alloc type")
+	{
+		struct Foo { int x; int y; };
+		auto ptr = rex_alloc_T_from(rex::core::frame_allocator(), Foo);
+		CHECK(ptr != nullptr);
+	}
+
+	SUBCASE("frame alloc array")
+	{
+		auto ptr = rex_alloc_N_from(rex::core::frame_allocator(), int, 100);
+		CHECK(ptr != nullptr);
+	}
+
+	SUBCASE("frame alloc zeroed")
+	{
+		struct Foo { int x; int y; };
+		auto ptr = rex_alloc_zeroed_T_from(rex::core::frame_allocator(), Foo);
+		CHECK(ptr != nullptr);
+		CHECK(ptr->x == 0);
+		CHECK(ptr->y == 0);
+	}
+
+	SUBCASE("frame alloc zeroed array")
+	{
+		auto ptr = rex_alloc_zeroed_N_from(rex::core::frame_allocator(), int, 100);
+		CHECK(ptr != nullptr);
+		for (sz i = 0; i < 100; ++i)
+			CHECK(ptr[i] == 0);
 	}
 }
