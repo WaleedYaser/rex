@@ -12,7 +12,6 @@ target_sources(rex-core PRIVATE
 	include/rex-core/defer.h
 	include/rex-core/log.h
 	include/rex-core/memory.h
-	include/rex-core/res.h
 	include/rex-core/types.h
 	include/rex-core/vec.h
 	src/assert.cpp
