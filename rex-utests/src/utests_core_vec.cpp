@@ -3,151 +3,377 @@
 
 #include "doctest.h"
 
+struct Foo
+{
+	rc::i32* ptr;
+	rc::sz count;
+};
+
+inline static Foo
+clone(const Foo& self, rc::Allocator allocator = rc::rex_allocator())
+{
+	return { rex_alloc_N(rc::i32, self.count), self.count };
+}
+
+inline static void
+destroy(Foo& self)
+{
+	rex_dealloc(self.ptr);
+}
+
 TEST_CASE("[rex-core]: vec")
 {
-	using namespace rex::core;
+	using namespace rc;
 
-	SUBCASE("vec creation")
+	SUBCASE("vec initialization")
 	{
+		auto v = vec_init<i32>();
+		rex_defer(vec_deinit(v));
+
+		CHECK(v.ptr == nullptr);
+		CHECK(v.count == 0);
+		CHECK(v.capacity == 0);
+		CHECK(v.allocator != nullptr);
+	}
+
+	SUBCASE("vec initialization using allocator")
+	{
+		auto v = vec_init<i32>(frame_allocator());
+		rex_defer(vec_deinit(v));
+
+		CHECK(v.ptr == nullptr);
+		CHECK(v.count == 0);
+		CHECK(v.capacity == 0);
+		CHECK(v.allocator != nullptr);
+	}
+
+
+	SUBCASE("vec with capacity")
+	{
+		auto v = vec_with_capacity<i32>(100);
+		rex_defer(vec_deinit(v));
+
+		CHECK(v.ptr != nullptr);
+		CHECK(v.count == 0);
+		CHECK(v.capacity == 100);
+		CHECK(v.allocator != nullptr);
+	}
+
+	SUBCASE("vec with capacity using allocator")
+	{
+		auto v = vec_with_capacity<i32>(100, frame_allocator());
+		rex_defer(vec_deinit(v));
+
+		CHECK(v.ptr != nullptr);
+		CHECK(v.count == 0);
+		CHECK(v.capacity == 100);
+		CHECK(v.allocator != nullptr);
+	}
+
+	SUBCASE("vec with count")
+	{
+		auto v = vec_with_count<i32>(100);
+		rex_defer(vec_deinit(v));
+
+		CHECK(v.ptr != nullptr);
+		CHECK(v.count == 100);
+		CHECK(v.capacity == 100);
+		CHECK(v.allocator != nullptr);
+	}
+
+	SUBCASE("vec with count using allocator")
+	{
+		auto v = vec_with_count<i32>(100, frame_allocator());
+		rex_defer(vec_deinit(v));
+
+		CHECK(v.ptr != nullptr);
+		CHECK(v.count == 100);
+		CHECK(v.capacity == 100);
+		CHECK(v.allocator != nullptr);
+	}
+
+	SUBCASE("vec from range")
+	{
+		i32 arr[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+		i32 count = sizeof(arr) / sizeof(arr[0]);
+
+		auto v = vec_from(arr, arr + count);
+		rex_defer(vec_deinit(v));
+
+		CHECK(v.ptr != nullptr);
+		CHECK(v.count == count);
+		CHECK(v.capacity == count);
+		CHECK(v.allocator != nullptr);
+
+		for (sz i = 0; i < v.count; ++i)
+			CHECK(v[i] == arr[i]);
+	}
+
+	SUBCASE("vec from range using allocator")
+	{
+		i32 arr[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+		i32 count = sizeof(arr) / sizeof(arr[0]);
+
+		auto v = vec_from(arr, arr + count, frame_allocator());
+		rex_defer(vec_deinit(v));
+
+		CHECK(v.ptr != nullptr);
+		CHECK(v.count == count);
+		CHECK(v.capacity == count);
+		CHECK(v.allocator != nullptr);
+
+		for (sz i = 0; i < v.count; ++i)
+			CHECK(v[i] == arr[i]);
+	}
+
+
+	SUBCASE("vec from initializer list")
+	{
+		auto v = vec_from({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+		rex_defer(vec_deinit(v));
+
+		CHECK(v.ptr != nullptr);
+		CHECK(v.count == 10);
+		CHECK(v.capacity == 10);
+		CHECK(v.allocator != nullptr);
+
+		for (i32 i = 0; i < 10; ++i)
+			CHECK(v[i] == i);
+	}
+
+	SUBCASE("vec from initializer list using allocator")
+	{
+		auto v = vec_from({0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, frame_allocator());
+		rex_defer(vec_deinit(v));
+
+		CHECK(v.ptr != nullptr);
+		CHECK(v.count == 10);
+		CHECK(v.capacity == 10);
+		CHECK(v.allocator != nullptr);
+
+		for (i32 i = 0; i < 10; ++i)
+			CHECK(v[i] == i);
+	}
+
+
+	SUBCASE("vec access operator")
+	{
+		auto v = vec_with_count<i32>(10);
+		rex_defer(vec_deinit(v));
+
+		for (i32 i = 0; i < 10; ++i)
+			v[i] = i;
+
+		for (i32 i = 0; i < 10; ++i)
+			CHECK(v[i] == i);
+	}
+
+	SUBCASE("vec copy")
+	{
+		auto v1 = vec_from({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+		rex_defer(vec_deinit(v1));
+
+		auto v2 = vec_copy(v1);
+		rex_defer(vec_deinit(v2));
+
+		CHECK(v1.ptr != v2.ptr);
+		CHECK(v1.count == v2.count);
+
+		for (sz i = 0; i < v1.count; ++i)
+			CHECK(v1[i] == v2[i]);
+	}
+
+	SUBCASE("vec copy using allocator")
+	{
+		auto v1 = vec_from({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+		rex_defer(vec_deinit(v1));
+
+		auto v2 = vec_copy(v1, frame_allocator());
+		rex_defer(vec_deinit(v2));
+
+		CHECK(v1.ptr != v2.ptr);
+		CHECK(v1.count == v2.count);
+
+		for (sz i = 0; i < v1.count; ++i)
+			CHECK(v1[i] == v2[i]);
+	}
+
+	SUBCASE("vec clone simple")
+	{
+		auto v1 = vec_from({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+		rex_defer(vec_deinit(v1));
+
+		auto v2 = clone(v1);
+		rex_defer(vec_deinit(v2));
+
+		CHECK(v1.ptr != v2.ptr);
+		CHECK(v1.count == v2.count);
+
+		for (sz i = 0; i < v1.count; ++i)
+			CHECK(v1[i] == v2[i]);
+	}
+
+	SUBCASE("vec clone simple using allocator")
+	{
+		auto v1 = vec_from({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+		rex_defer(vec_deinit(v1));
+
+		auto v2 = clone(v1, frame_allocator());
+		rex_defer(vec_deinit(v2));
+
+		CHECK(v1.ptr != v2.ptr);
+		CHECK(v1.count == v2.count);
+
+		for (sz i = 0; i < v1.count; ++i)
+			CHECK(v1[i] == v2[i]);
+	}
+
+	SUBCASE("vec clone/destroy complex")
+	{
+		auto v1 = vec_from<Foo>({
+			{ rex_alloc_N(i32, 10), 10 },
+			{ rex_alloc_N(i32, 15), 15 },
+			{ rex_alloc_N(i32, 20), 20 },
+			{ rex_alloc_N(i32, 25), 25 },
+			{ rex_alloc_N(i32, 30), 30 },
+		});
+		rex_defer(destroy(v1));
+
+		auto v2 = rc::clone(v1);
+		rex_defer(destroy(v2));
+
+		CHECK(v1.ptr != v2.ptr);
+		CHECK(v1.count == v2.count);
+
+		for (sz i = 0; i < v1.count; ++i)
 		{
-			auto vec = Vec<i32>::with_capacity(200, frame_allocator());
-			vec = Vec<i32>::with_capacity(400, frame_allocator());
-			vec = Vec<i32>::with_capacity(10000, frame_allocator());
-			frame_allocator()->clear();
-			vec = Vec<i32>::with_capacity(10000, frame_allocator());
-			vec = Vec<i32>::with_capacity(300 * 1024 * 1024, frame_allocator());
-			frame_allocator()->clear();
+			CHECK(v1[i].ptr != v2[i].ptr);
+			CHECK(v1[i].count == v2[i].count);
 		}
+	}
+
+	SUBCASE("vec clone/destroy complex using allocator")
+	{
+		auto v1 = vec_from<Foo>({
+			{ rex_alloc_N(i32, 10), 10 },
+			{ rex_alloc_N(i32, 15), 15 },
+			{ rex_alloc_N(i32, 20), 20 },
+			{ rex_alloc_N(i32, 25), 25 },
+			{ rex_alloc_N(i32, 30), 30 },
+		});
+		rex_defer(destroy(v1));
+
+		auto v2 = rc::clone(v1, frame_allocator());
+		rex_defer(destroy(v2));
+
+		CHECK(v1.ptr != v2.ptr);
+		CHECK(v1.count == v2.count);
+
+		for (sz i = 0; i < v1.count; ++i)
 		{
-			auto vec = Vec<i32>::init();
-			rex_defer(vec.deinit());
-
-			CHECK(vec.ptr == nullptr);
-			CHECK(vec.count == 0);
-			CHECK(vec.capacity == 0);
-			CHECK(vec.allocator != nullptr);
+			CHECK(v1[i].ptr != v2[i].ptr);
+			CHECK(v1[i].count == v2[i].count);
 		}
+	}
 
-		{
-			auto vec = Vec<i32>::with_capacity(100);
-			rex_defer(vec.deinit());
+	SUBCASE("vec clear")
+	{
+		auto v = vec_with_count<i32>(100);
+		rex_defer(vec_deinit(v));
 
-			CHECK(vec.ptr != nullptr);
-			CHECK(vec.count == 0);
-			CHECK(vec.capacity == 100);
-		}
+		vec_clear(v);
+		CHECK(v.count == 0);
+		CHECK(v.capacity == 100);
+	}
 
-		{
-			auto vec = Vec<i32>::with_count(100);
-			rex_defer(vec.deinit());
+	SUBCASE("vec reserve")
+	{
+		auto v = vec_with_capacity<i32>(50);
+		rex_defer(vec_deinit(v));
 
-			CHECK(vec.ptr != nullptr);
-			CHECK(vec.count == 100);
-			CHECK(vec.capacity == 100);
-		}
-
-		{
-			auto vec = Vec<i32>::from({1, 2, 3, 4, 5});
-			rex_defer(vec.deinit());
-
-			CHECK(vec.ptr != nullptr);
-			CHECK(vec.count == 5);
-			CHECK(vec.capacity == 5);
-			CHECK(vec[0] == 1);
-			CHECK(vec[1] == 2);
-			CHECK(vec[2] == 3);
-			CHECK(vec[3] == 4);
-			CHECK(vec[4] == 5);
-		}
+		vec_reserve(v, 100);
+		CHECK(v.capacity == 150);
 	}
 
 	SUBCASE("vec fill")
 	{
-		auto vec = Vec<f32>::with_count(50);
-		rex_defer(vec.deinit());
+		auto v = vec_with_count<i32>(10);
+		rex_defer(vec_deinit(v));
+		vec_fill(v, 99);
 
-		vec.fill(5.0f);
-		for (i64 i = 0; i < vec.count; ++i)
-			CHECK(vec[i] == 5.0f);
+		for (i32 i = 0; i < v.count; ++i)
+			CHECK(v[i] == 99);
 	}
 
-	SUBCASE("vec reserve ")
+	SUBCASE("vec push")
 	{
-		auto vec = Vec<i32>::with_capacity(10);
-		rex_defer(vec.deinit());
-
-		CHECK(vec.ptr != nullptr);
-		CHECK(vec.capacity == 10);
-		vec.reserve(20);
-		CHECK(vec.ptr != nullptr);
-		CHECK(vec.capacity == 30);
-	}
-
-	SUBCASE("vec push/pop/top")
-	{
-		auto vec = Vec<i32>::init();
-		rex_defer(vec.deinit());
+		auto v = vec_init<i32>();
+		rex_defer(vec_deinit(v));
 
 		for (i32 i = 0; i < 100; ++i)
-			vec.push(i);
-		CHECK(vec.count == 100);
-
-		for (i64 i = 0; i < vec.count; ++i)
-			CHECK(vec[i] == i);
-
-		CHECK(vec.top() == 99);
+			vec_push(v, i);
 
 		for (i32 i = 0; i < 100; ++i)
-			CHECK(vec.pop() == 99 - i);
-
-		CHECK(vec.count == 0);
+			CHECK(v[i] == i);
 	}
 
 	SUBCASE("vec append")
 	{
-		auto vec1 = Vec<i32>::from({0, 1, 2, 3, 4});
-		rex_defer(vec1.deinit());
+		auto v1 = vec_from<i32>({0, 1, 2, 3, 4});
+		rex_defer(vec_deinit(v1));
 
-		auto vec2 = Vec<i32>::from({5, 6, 7, 8, 9});
-		rex_defer(vec2.deinit());
+		auto v2 = vec_from<i32>({5, 6, 7, 8, 9});
+		rex_defer(vec_deinit(v2));
 
-		vec1.append(vec2);
-		CHECK(vec1.count == 10);
-
-		for (i32 i = 0; i < (i32)vec1.count; ++i)
-			CHECK(vec1[i] == i);
+		vec_append(v1, v2);
+		for (i32 i = 0; i < 10; ++i)
+			CHECK(v1[i] == i);
 	}
 
-	SUBCASE("vec iterators")
+	SUBCASE("vec top/pop")
 	{
-		auto vec = Vec<i32>::from({0, 1, 2, 3, 4});
-		rex_defer(vec.deinit());
+		auto v = vec_from<i32>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+		rex_defer(vec_deinit(v));
 
-		CHECK(vec.begin() == vec.ptr);
-		CHECK(vec.end() == vec.ptr + vec.count);
+		for (i32 i = 9; i >= 0; --i)
+		{
+			CHECK(vec_top(v) == i);
+			CHECK(vec_pop(v) == i);
+		}
+		CHECK(v.count == 0);
+	}
+
+	SUBCASE("vec ranged for")
+	{
+		auto values = vec_from<i32>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+		rex_defer(vec_deinit(values));
 
 		i32 i = 0;
-		for (auto v: vec)
+		for (auto v: values)
 			CHECK(v == i++);
 
-		i = 0;
-		for (const auto v: vec)
-			CHECK(v == i++);
+		for (auto& v: values)
+			v = 100;
 
-		for (auto& v: vec)
-			v++;
-
-		i = 1;
-		for (const auto& v: vec)
-			CHECK(v == i++);
+		for (const auto& v: values)
+			CHECK(v == 100);
 	}
 
-	SUBCASE("vec destroy")
+	SUBCASE("vec const ranged for")
 	{
-		auto v = Vec<Vec<i32>>::init();
-		rex_defer(v.destroy());
+		auto values = vec_from<i32>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+		rex_defer(vec_deinit(values));
 
-		v.push(Vec<i32>::from({1, 2, 3}));
-		v.push(Vec<i32>::from({4, 5, 6}));
+		const auto cvalues = values;
+
+		i32 i = 0;
+		for (auto v: cvalues)
+			CHECK(v == i++);
+
+		for (auto& v: values)
+			v = 100;
+
+		for (const auto& v: cvalues)
+			CHECK(v == 100);
 	}
 }

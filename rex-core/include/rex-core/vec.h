@@ -6,48 +6,23 @@
 #include <initializer_list>
 #include <type_traits>
 
-namespace rex::core
+namespace rc
 {
 	template <typename T>
 	struct Vec
 	{
 		T* ptr;
-		i64 count;
-		i64 capacity;
+		sz count;
+		sz capacity;
 		Allocator allocator;
 
-		static Vec init(Allocator allocator = rex_allocator());
-		static Vec with_capacity(i64 capacity, Allocator allocator = rex_allocator());
-		static Vec with_count(i64 count, Allocator allocator = rex_allocator());
-		static Vec from(const T* first, const T* last, Allocator allocator = rex_allocator());
-		static Vec from(std::initializer_list<T> values, Allocator allocator = rex_allocator());
-
-		Vec copy(Allocator allocator = rex_allocator());
-		Vec clone(Allocator allocator = rex_allocator());
-		void deinit();
-		void destroy();
-
-		void clear();
-		void reserve(i64 additional_capacity);
-
-		template <typename R> void fill(const R& value);
-		template <typename R> void push(const R& value);
-		template <typename R> void append(const Vec<R>& other);
-
-		T pop();
-		T& top();
-
-		T* begin();
-		T* end();
-		const T* begin() const;
-		const T* end() const;
-
-		T& operator[](i64 index);
-		const T& operator[](i64 index) const;
+		T& operator[](sz index) { return ptr[index]; }
+		const T& operator[](sz index) const {return ptr[index]; }
 	};
 
 	template <typename T>
-	Vec<T> Vec<T>::init(Allocator allocator)
+	inline static Vec<T>
+	vec_init(Allocator allocator = rex_allocator())
 	{
 		Vec<T> self = {};
 		self.allocator = allocator;
@@ -55,178 +30,158 @@ namespace rex::core
 	}
 
 	template <typename T>
-	Vec<T> Vec<T>::with_capacity(i64 capacity, Allocator allocator)
+	inline static void
+	vec_deinit(Vec<T>& self)
+	{
+		rex_dealloc_from(self.allocator, self.ptr);
+		self = {};
+	}
+
+	template <typename T>
+	inline static Vec<T>
+	vec_with_capacity(sz capacity, Allocator allocator = rex_allocator())
 	{
 		Vec<T> self = {};
 		self.allocator = allocator;
-		self.ptr = (T*)rex_alloc_from(allocator, capacity * sizeof(T));
+		self.ptr = rex_alloc_N_from(allocator, T, capacity);
 		rex_assert(self.ptr);
 		self.capacity = capacity;
 		return self;
 	}
 
 	template <typename T>
-	Vec<T> Vec<T>::with_count(i64 count, Allocator allocator)
+	inline static Vec<T>
+	vec_with_count(sz count, Allocator allocator = rex_allocator())
 	{
-		auto self = Vec<T>::with_capacity(count, allocator);
+		auto self = vec_with_capacity<T>(count, allocator);
 		self.count = count;
 		return self;
 	}
 
 	template <typename T>
-	Vec<T> Vec<T>::from(const T* first, const T* last, Allocator allocator)
+	inline static Vec<T>
+	vec_from(const T* first, const T* last, Allocator allocator = rex_allocator())
 	{
-		auto self = Vec<T>::with_capacity(last - first, allocator);
+		auto self = vec_with_capacity<T>(last - first, allocator);
 		for (const T* it = first; it != last; ++it)
 			self.ptr[self.count++] = *it;
 		return self;
 	}
 
 	template <typename T>
-	Vec<T> Vec<T>::from(std::initializer_list<T> values, Allocator allocator)
+	inline static Vec<T>
+	vec_from(std::initializer_list<T> values, Allocator allocator = rex_allocator())
 	{
-		return Vec<T>::from(values.begin(), values.end(), allocator);
+		return vec_from(values.begin(), values.end(), allocator);
 	}
 
 	template <typename T>
-	Vec<T> Vec<T>::copy(Allocator allocator)
+	inline static Vec<T>
+	vec_copy(Vec<T>& self, Allocator allocator = rex_allocator())
 	{
-		auto other = Vec<T>::with_capacity(count, allocator);
-		for (i64 i = 0; i < count; ++i)
+		auto other = vec_with_capacity<T>(self.count, allocator);
+		for (sz i = 0; i < self.count; ++i)
 			other[other.count++] = self[i];
 		return other;
 	}
 
 	template <typename T>
-	Vec<T> Vec<T>::clone(Allocator allocator)
+	inline static Vec<T>
+	clone(Vec<T>& self, Allocator allocator = rex_allocator())
 	{
 		if constexpr (std::is_compound_v<T>)
 		{
-			auto other = Vec<T>::with_capacity(count, allocator);
-			for (i64 i = 0; i < count; ++i)
-				other[other.count++] = self[i].clone();
+			auto other = vec_with_capacity<T>(self.count, allocator);
+			for (sz i = 0; i < self.count; ++i)
+				other[other.count++] = clone(self[i], allocator);
 			return other;
 		}
 		else
 		{
-			return copy(allocator);
+			return vec_copy(self, allocator);
 		}
 	}
 
 	template <typename T>
-	void Vec<T>::deinit()
-	{
-		rex_dealloc_from(allocator, ptr);
-		*this = {};
-	}
-
-	template <typename T>
-	void Vec<T>::destroy()
+	inline static void
+	destroy(Vec<T>& self)
 	{
 		if constexpr (std::is_compound_v<T>)
 		{
-			for (i64 i = 0; i < count; ++i)
-				ptr[i].destroy();
+			for (sz i = 0; i < self.count; ++i)
+				destroy(self[i]);
 		}
-		deinit();
+		vec_deinit(self);
 	}
 
 	template <typename T>
-	void Vec<T>::clear()
+	inline static void
+	vec_clear(Vec<T>& self)
 	{
-		count = 0;
+		self.count = 0;
 	}
 
 	template <typename T>
-	void Vec<T>::reserve(i64 additional_capacity)
+	inline static void
+	vec_reserve(Vec<T>& self, sz additional_capacity)
 	{
-		capacity += additional_capacity;
-		auto old_ptr = ptr;
-		ptr = (T*)rex_alloc_from(allocator, capacity*sizeof(T));
-		rex_assert(ptr);
-		for (i64 i = 0; i < count; ++i)
-			ptr[i] = old_ptr[i];
-		rex_dealloc_from(allocator, old_ptr);
+		self.capacity += additional_capacity;
+		auto old_ptr = self.ptr;
+		self.ptr = rex_alloc_N_from(self.allocator, T, self.capacity);
+		rex_assert(self.ptr);
+		for (sz i = 0; i < self.count; ++i)
+			self[i] = old_ptr[i];
+		rex_dealloc_from(self.allocator, old_ptr);
+	}
+
+	template <typename T, typename R>
+	inline static void
+	vec_fill(Vec<T>& self, const R& value)
+	{
+		for (sz i = 0; i < self.count; ++i)
+			self[i] = value;
+	}
+
+	template <typename T, typename R>
+	inline static void
+	vec_push(Vec<T>& self, const R& value)
+	{
+		if (self.count == self.capacity)
+			vec_reserve(self, self.capacity > 1 ? self.capacity / 2 : 8);
+
+		self[self.count++] = value;
+	}
+
+	template <typename T, typename R>
+	inline static void
+	vec_append(Vec<T>& self, const Vec<R>& other)
+	{
+		if (self.capacity < (self.count + other.count))
+			vec_reserve(self, other.count);
+
+		for (sz i = 0; i < other.count; ++i)
+			self[self.count + i] = other[i];
+		self.count += other.count;
 	}
 
 	template <typename T>
-	template<typename R>
-	void Vec<T>::fill(const R& value)
+	inline static T&
+	vec_top(Vec<T>& self)
 	{
-		for (i64 i = 0; i < count; ++i)
-			ptr[i] = value;
+		rex_assert(self.count > 0);
+		return self[self.count - 1];
 	}
 
 	template <typename T>
-	template <typename R>
-	void Vec<T>::push(const R& value)
+	inline static T
+	vec_pop(Vec<T>& self)
 	{
-		if (count == capacity)
-			reserve(capacity > 1 ? capacity / 2 : 8);
-
-		ptr[count++] = value;
+		rex_assert(self.count > 0);
+		return self[--self.count];
 	}
 
-	template <typename T>
-	template <typename R>
-	void Vec<T>::append(const Vec<R>& other)
-	{
-		if (capacity < (count + other.count))
-			reserve(other.count);
-
-		for (i64 i = 0; i < other.count; ++i)
-			ptr[count + i] = other[i];
-		count += other.count;
-	}
-
-
-	template <typename T>
-	T Vec<T>::pop()
-	{
-		rex_assert(count > 0);
-		return ptr[--count];
-	}
-
-	template <typename T>
-	T& Vec<T>::top()
-	{
-		rex_assert(count > 0);
-		return ptr[count - 1];
-	}
-
-	template <typename T>
-	T* Vec<T>::begin()
-	{
-		return ptr;
-	}
-
-	template <typename T>
-	T* Vec<T>::end()
-	{
-		return ptr + count;
-	}
-
-	template <typename T>
-	const T* Vec<T>::begin() const
-	{
-		return ptr;
-	}
-
-	template <typename T>
-	const T* Vec<T>::end() const
-	{
-		return ptr + count;
-	}
-
-	template <typename T>
-	T& Vec<T>::operator[](i64 index)
-	{
-		return ptr[index];
-	}
-
-	template <typename T>
-	const T& Vec<T>::operator[](i64 index) const
-	{
-		return ptr[index];
-	}
+	template <typename T> T* begin(Vec<T>& self) { return self.ptr; }
+	template <typename T> T* end(Vec<T>& self) { return self.ptr + self.count; }
+	template <typename T> const T* begin(const Vec<T>& self) { return self.ptr; }
+	template <typename T> const T* end(const Vec<T>& self) { return self.ptr + self.count; }
 }

@@ -3,7 +3,7 @@
 #include "rex-core/exports.h"
 #include "rex-core/types.h"
 
-namespace rex::core
+namespace rc
 {
 	struct IAllocator
 	{
@@ -17,8 +17,8 @@ namespace rex::core
 	struct Frame_Allocator: IAllocator
 	{
 		struct Frame_Node* head;
-		u64 peak_size;
-		u64 frame_size;
+		sz peak_size;
+		sz frame_size;
 
 		~Frame_Allocator() override;
 		void* alloc(sz size, const char* file, const char* function, i32 line) override;
@@ -44,14 +44,14 @@ namespace rex::core
 #define rex_dealloc_from(allocator, ptr) allocator->dealloc(ptr)
 #define rex_alloc_T_from(allocator, T) (T*)rex_alloc_from(allocator, sizeof(T))
 #define rex_alloc_N_from(allocator, T, count) (T*)rex_alloc_from(allocator, sizeof(T) * count)
-#define rex_alloc_zeroed_from(allocator, size) rex::core::_alloc_zeroed(allocator, size, __FILE__, __FUNCTION__, __LINE__)
+#define rex_alloc_zeroed_from(allocator, size) rc::_alloc_zeroed(allocator, size, __FILE__, __FUNCTION__, __LINE__)
 #define rex_alloc_zeroed_T_from(allocator, T) (T*)rex_alloc_zeroed_from(allocator, sizeof(T))
 #define rex_alloc_zeroed_N_from(allocator, T, count) (T*)rex_alloc_zeroed_from(allocator, sizeof(T) * count)
 
-#define rex_alloc(size) rex_alloc_from(rex::core::rex_allocator(), size)
-#define rex_dealloc(ptr) rex_dealloc_from(rex::core::rex_allocator(), ptr)
-#define rex_alloc_T(T) rex_alloc_T_from(rex::core::rex_allocator(), T)
-#define rex_alloc_N(T, count) rex_alloc_N_from(rex::core::rex_allocator(), T, count)
-#define rex_alloc_zeroed(size) rex_alloc_zeroed_from(rex::core::rex_allocator(), size)
-#define rex_alloc_zeroed_T(T) rex_alloc_zeroed_T_from(rex::core::rex_allocator(), T);
-#define rex_alloc_zeroed_N(T, count) rex_alloc_zeroed_N_from(rex::core::rex_allocator(), T, count)
+#define rex_alloc(size) rex_alloc_from(rc::rex_allocator(), size)
+#define rex_dealloc(ptr) rex_dealloc_from(rc::rex_allocator(), ptr)
+#define rex_alloc_T(T) rex_alloc_T_from(rc::rex_allocator(), T)
+#define rex_alloc_N(T, count) rex_alloc_N_from(rc::rex_allocator(), T, count)
+#define rex_alloc_zeroed(size) rex_alloc_zeroed_from(rc::rex_allocator(), size)
+#define rex_alloc_zeroed_T(T) rex_alloc_zeroed_T_from(rc::rex_allocator(), T);
+#define rex_alloc_zeroed_N(T, count) rex_alloc_zeroed_N_from(rc::rex_allocator(), T, count)

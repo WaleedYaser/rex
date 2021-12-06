@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-namespace rex::core
+namespace rc
 {
 	void
 	log(REX_LOG_LEVEL level, const char *message, ...)

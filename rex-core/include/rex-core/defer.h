@@ -2,7 +2,7 @@
 
 // source: https://www.gingerbill.org/article/2015/08/19/defer-in-cpp/
 
-namespace rex::core
+namespace rc
 {
 	template <typename F>
 	struct Defer {
@@ -21,4 +21,4 @@ namespace rex::core
 #define rex_DEFER_2(x, y) rex_DEFER_1(x, y)
 #define rex_DEFER_3(x)    rex_DEFER_2(x, __COUNTER__)
 
-#define rex_defer(code)   auto rex_DEFER_3(_defer_) = rex::core::make_defer([&](){ code; })
+#define rex_defer(code)   auto rex_DEFER_3(_defer_) = rc::make_defer([&](){ code; })

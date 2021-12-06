@@ -5,9 +5,9 @@
 #include <stdlib.h>
 
 // TODO: implement malloc http://dmitrysoshnikov.com/compilers/writing-a-memory-allocator/
-namespace rex::core
+namespace rc
 {
-	static constexpr u64 FRAME_ALLOCATOR_INITIAL_CAPACITY = 256 * 1024 * 1024;
+	static constexpr sz FRAME_ALLOCATOR_INITIAL_CAPACITY = 256 * 1024 * 1024;
 
 	struct Rex_Allocator: IAllocator
 	{

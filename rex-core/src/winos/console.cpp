@@ -5,7 +5,7 @@
 #include "rex-core/types.h"
 #include <Windows.h>
 
-namespace rex::core
+namespace rc
 {
 	// internal function to map CONSOLE_COLOR to u8
 	inline static u8

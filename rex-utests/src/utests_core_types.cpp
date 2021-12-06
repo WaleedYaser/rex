@@ -6,6 +6,8 @@
 
 TEST_CASE("[rex-core]: types")
 {
+	using namespace rc;
+
 	SUBCASE("limits")
 	{
 		CHECK(U8_MIN  == 0);
