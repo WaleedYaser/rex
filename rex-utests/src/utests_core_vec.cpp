@@ -330,6 +330,19 @@ TEST_CASE("[rex-core]: vec")
 			CHECK(v1[i] == i);
 	}
 
+	SUBCASE("vec append range")
+	{
+		auto v1 = vec_from<i32>({0, 1, 2, 3, 4});
+		rex_defer(vec_deinit(v1));
+
+		i32 arr[] = {5, 6, 7, 8, 9};
+		auto count = sizeof(arr) / sizeof(arr[0]);
+
+		vec_append(v1, arr, arr + count);
+		for (i32 i = 0; i < 10; ++i)
+			CHECK(v1[i] == i);
+	}
+
 	SUBCASE("vec top/pop")
 	{
 		auto v = vec_from<i32>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});

@@ -70,7 +70,7 @@ namespace rc
 		{
 			if (leaked > 0)
 			{
-				rex_log_warn("Total leaked memory: %lld", leaked);
+				rex_log_warn("Total leaked memory: %lld bytes", leaked);
 				for (auto it = top; it != nullptr; it = it->prev)
 					rex_log_warn("\t(%lld bytes) at %s(%lld): %s", it->size, it->file, it->line, it->function);
 			}
@@ -96,21 +96,12 @@ namespace rc
 			head->size += size;
 			return ptr;
 		}
-		else if (size <= head->capacity)
-		{
-			auto node = (Frame_Node*)rex_alloc(head->capacity + sizeof(Frame_Node));
-			rex_assert(node);
-			node->capacity = head->capacity;
-			node->size = size;
-			node->next = head;
-			head = node;
-			return node + 1;
-		}
 		else
 		{
-			auto node = (Frame_Node*)rex_alloc(size + sizeof(Frame_Node));
+			auto capacity = size > head->capacity ? size : head->capacity;
+			auto node = (Frame_Node*)rex_alloc(capacity + sizeof(Frame_Node));
 			rex_assert(node);
-			node->capacity = size;
+			node->capacity = capacity;
 			node->size = size;
 			node->next = head;
 			head = node;

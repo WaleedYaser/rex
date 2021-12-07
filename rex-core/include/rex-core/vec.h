@@ -33,7 +33,8 @@ namespace rc
 	inline static void
 	vec_deinit(Vec<T>& self)
 	{
-		rex_dealloc_from(self.allocator, self.ptr);
+		if (self.allocator)
+			rex_dealloc_from(self.allocator, self.ptr);
 		self = {};
 	}
 
@@ -154,14 +155,24 @@ namespace rc
 
 	template <typename T, typename R>
 	inline static void
+	vec_append(Vec<T>& self, const R* first, const R* last)
+	{
+		auto count = last - first;
+		rex_assert(count >= 0);
+
+		if (self.capacity < (self.count + count))
+			vec_reserve(self, count);
+
+		for (sz i = 0; i < (sz)count; ++i)
+			self[self.count + i] = first[i];
+		self.count += count;
+	}
+
+	template <typename T, typename R>
+	inline static void
 	vec_append(Vec<T>& self, const Vec<R>& other)
 	{
-		if (self.capacity < (self.count + other.count))
-			vec_reserve(self, other.count);
-
-		for (sz i = 0; i < other.count; ++i)
-			self[self.count + i] = other[i];
-		self.count += other.count;
+		vec_append(self, other.ptr, other.ptr + other.count);
 	}
 
 	template <typename T>
