@@ -1,4 +1,7 @@
 # REX
+
+[![](http://github-actions.40ants.com/WaleedYaser/rex/matrix.svg?only=unit-tests)](https://github.com/WaleedYaser/rex)
+
 [![Project Status: Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![unit-tests](https://github.com/WaleedYaser/rex/actions/workflows/utests.yml/badge.svg)](https://github.com/WaleedYaser/rex/actions/workflows/utests.yml)
 ![Lines of code](https://img.shields.io/tokei/lines/github/WaleedYaser/rex)

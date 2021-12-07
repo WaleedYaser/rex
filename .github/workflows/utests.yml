@@ -14,19 +14,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
-        build_type: [Debug, Release]
+        os: [windows-latest, ubuntu-latest]
+        build-variant: [Debug, Release]
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: true
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build-variant }}
 
     - name: Build
-      run: cmake --build build --config ${{ matrix.build_type }} -j
+      run: cmake --build build --config ${{ matrix.build-variant }} -j
 
     - name: Test
       working-directory: build
-      run: ctest -C ${{ matrix.build_type }}
+      run: ctest -C ${{ matrix.build-variant }}
