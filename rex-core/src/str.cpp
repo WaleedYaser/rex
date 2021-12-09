@@ -145,4 +145,91 @@ namespace rc
 
 		return true;
 	}
+
+	// resource: https://github.com/RandyGaul/cute_headers/blob/master/cute_utf.h
+	// TODO: handle errors 0xFFFD <?>
+	inline static i32
+	_decode_utf8(const char* it, i32* cp)
+	{
+		u8 c = *it++;
+		i32 extra = 0;
+		     if (c >= 0xF0) { *cp = c & 0x07; extra = 3; }
+		else if (c >= 0xE0) { *cp = c & 0x0F; extra = 2; }
+		else if (c >= 0xC0) { *cp = c & 0x1F; extra = 1; }
+		else                { *cp = c; }
+
+		i32 count = extra + 1;
+		while (extra--)
+		{
+			c = *it++;
+			*cp = ((*cp) << 6) | (c & 0x3F);
+		}
+
+		return count;
+	}
+
+
+	const i32&
+	Str32_Iterator::operator*() const
+	{
+		return value;
+	}
+
+	const i32*
+	Str32_Iterator::operator->() const
+	{
+		return &value;
+	}
+
+	Str32_Iterator&
+	Str32_Iterator::operator++()
+	{
+		it += width;
+		width = _decode_utf8(it , &value);
+		return *this;
+	}
+
+	Str32_Iterator
+	Str32_Iterator::operator++(int)
+	{
+		auto tmp = *this;
+		++(*this);
+		return tmp;
+	}
+
+	bool
+	Str32_Iterator::operator==(const Str32_Iterator& other) const
+	{
+		return it == other.it;
+	}
+
+	bool
+	Str32_Iterator::operator!=(const Str32_Iterator& other) const
+	{
+		return it != other.it;
+	}
+
+	Str32_Iterator
+	begin(const Str32_Stream& self)
+	{
+		Str32_Iterator res = {};
+		res.it = begin(self.utf8);
+		res.width = _decode_utf8(res.it, &res.value);
+		return res;
+	}
+
+	Str32_Iterator
+	end(const Str32_Stream& self)
+	{
+		return { end(self.utf8) };
+	}
+
+	Str32
+	str_to_utf32(const Str& self, Allocator allocator)
+	{
+		auto res = vec_init<i32>(allocator);
+		for (auto c: str32_stream(self))
+			vec_push(res, c);
+		return res;
+	}
 }

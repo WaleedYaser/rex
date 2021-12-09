@@ -55,3 +55,7 @@ namespace rc
 #define rex_alloc_zeroed(size) rex_alloc_zeroed_from(rc::rex_allocator(), size)
 #define rex_alloc_zeroed_T(T) rex_alloc_zeroed_T_from(rc::rex_allocator(), T);
 #define rex_alloc_zeroed_N(T, count) rex_alloc_zeroed_N_from(rc::rex_allocator(), T, count)
+
+// TODO: add unit tests
+#define rex_construct_T_from(allocator, T, ...) new (rex_alloc_T_from(allocator, T)) T(##__VA_ARGS__)
+#define rex_destruct_T_from(allocator, ptr) ptr->~(); rex_dealloc_from(allocator, ptr)

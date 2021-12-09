@@ -140,6 +140,9 @@ namespace rc
 
 	Frame_Allocator::~Frame_Allocator()
 	{
+		if (head == nullptr)
+			return;
+
 		clear();
 		rex_log_info("Frame allocator initial capacity: %lld bytes and peak: %lld bytes",
 			FRAME_ALLOCATOR_INITIAL_CAPACITY, peak_size);
