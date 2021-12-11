@@ -1,8 +1,9 @@
-#include "rex-core/console.h"
-
+// windows specific code, we include it on windows only
 #if REX_OS_WINDOWS
 
+#include "rex-core/console.h"
 #include "rex-core/types.h"
+
 #include <Windows.h>
 
 namespace rc

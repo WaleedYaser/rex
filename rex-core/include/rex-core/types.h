@@ -108,12 +108,12 @@ namespace rc
 		struct { V3<T> rgb; T _pad2; };
 		struct { T _pad3; V3<T> gba; };
 
-		struct { V2<T> xy; V2<T> zw[2]; };
-		struct { T _pad4; V2<T> yz; T _pad5; };
+		// struct { V2<T> xy; V2<T> zw[2]; };
+		// struct { T _pad4; V2<T> yz; T _pad5; };
 
-		struct { V2<T> rg; T _pad7[2]; };
-		struct { T _pad8; V2<T> gb; T _pad9; };
-		struct { T _pad10[2]; V2<T> ba; };
+		// struct { V2<T> rg; T _pad7[2]; };
+		// struct { T _pad8; V2<T> gb; T _pad9; };
+		// struct { T _pad10[2]; V2<T> ba; };
 
 		T values[4];
 
@@ -141,4 +141,23 @@ namespace rc
 	// colors
 	using Color_U8  = V4<u8>;  // 8-bit color
 	using Color_F32 = V4<f32>; // normalized color
+
+	static_assert(sizeof(v2) == 8);
+	static_assert(sizeof(v3) == 12);
+	static_assert(sizeof(v4) == 16);
+
+	static_assert(sizeof(v2d) == 16);
+	static_assert(sizeof(v3d) == 24);
+	static_assert(sizeof(v4d) == 32);
+
+	static_assert(sizeof(v2u) == 8);
+	static_assert(sizeof(v3u) == 12);
+	static_assert(sizeof(v4u) == 16);
+
+	static_assert(sizeof(v2i) == 8);
+	static_assert(sizeof(v3i) == 12);
+	static_assert(sizeof(v4i) == 16);
+
+	static_assert(sizeof(Color_U8) == 4);
+	static_assert(sizeof(Color_F32) == 16);
 }

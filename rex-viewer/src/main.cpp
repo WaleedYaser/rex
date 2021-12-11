@@ -4,252 +4,175 @@
 
 #include <rex-core/api.h>
 #include <rex-core/version.h>
+#include <rex-core/window.h>
+#include <rex-core/memory.h>
+#include <rex-core/str.h>
 
 #include <windows.h>
 #include <assert.h>
 
 static Rex_Api* g_rex;
 
-static DWORD* g_blt_bits;
-static int g_blt_size;
-
 inline static void*
 _alloc(size_t size)
 {
-    return VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	return VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 }
 
 inline static void
 _free(void* ptr)
 {
-    VirtualFree(ptr, 0, MEM_RELEASE);
+	VirtualFree(ptr, 0, MEM_RELEASE);
 }
 
 inline static Content
 _file_read(const char* path)
 {
-    HANDLE hfile = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
-    if (hfile == INVALID_HANDLE_VALUE)
-        return {};
+	HANDLE hfile = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+	if (hfile == INVALID_HANDLE_VALUE)
+		return {};
 
-    Content res = {};
-    res.size = GetFileSize(hfile, nullptr);
-    if (res.size == INVALID_FILE_SIZE)
-        return {};
+	Content res = {};
+	res.size = GetFileSize(hfile, nullptr);
+	if (res.size == INVALID_FILE_SIZE)
+		return {};
 
-    DWORD bytes_read = 0;
-    res.data = (unsigned char*)_alloc(res.size);
-    bool read_res = ReadFile(hfile, res.data, res.size, &bytes_read, nullptr);
-    CloseHandle(hfile);
+	DWORD bytes_read = 0;
+	res.data = (unsigned char*)_alloc(res.size);
+	bool read_res = ReadFile(hfile, res.data, res.size, &bytes_read, nullptr);
+	CloseHandle(hfile);
 
-    if (read_res == false)
-    {
-        _free(res.data);
-        return {};
-    }
+	if (read_res == false)
+	{
+		_free(res.data);
+		return {};
+	}
 
-    return res;
+	return res;
 }
 
-inline static void
-_paint(HWND hwnd)
-{
-    if (g_blt_size < g_rex->window_width * g_rex->window_height)
-    {
-        _free(g_blt_bits);
-
-        g_blt_bits = (DWORD*)_alloc(g_rex->window_width * g_rex->window_height * sizeof(DWORD));
-    }
-
-    // construct color buffer
-    for (int i = 0; i < g_rex->canvas.width * g_rex->canvas.height; ++i)
-    {
-        g_blt_bits[i] =
-            ((unsigned char)(g_rex->canvas.pixels[i].r * 255) << 16) |
-            ((unsigned char)(g_rex->canvas.pixels[i].g * 255) << 8) |
-            ((unsigned char)(g_rex->canvas.pixels[i].b * 255) << 0);
-    }
-
-    // blit color buffer to window
-    HDC hdc = GetDC(hwnd);
-    assert(hdc && "failed to get device context");
-
-    BITMAPINFO bitmap_info = {};
-    bitmap_info.bmiHeader.biSize = sizeof(bitmap_info.bmiHeader);
-    bitmap_info.bmiHeader.biWidth = g_rex->canvas.width;
-    bitmap_info.bmiHeader.biHeight = -g_rex->canvas.height; // negative to have origin at top left corner
-    bitmap_info.bmiHeader.biPlanes = 1;
-    bitmap_info.bmiHeader.biBitCount = 32;
-    bitmap_info.bmiHeader.biCompression = BI_RGB;
-
-    int copied_scan_lines = ::StretchDIBits(
-        hdc,
-        0, 0, g_rex->window_width, g_rex->window_height, // destination
-        0, 0, g_rex->canvas.width, g_rex->canvas.height, // source
-        g_blt_bits,
-        &bitmap_info,
-        DIB_RGB_COLORS,
-        SRCCOPY);
-    assert(copied_scan_lines && "[bolt/window]: failed to copy pixels to window rect");
-
-    [[maybe_unused]] bool res = ReleaseDC(hwnd, hdc);
-    assert(res && "failed to release device context");
-}
-
-LRESULT CALLBACK
-_wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    switch (uMsg)
-    {
-    case WM_DESTROY:
-        g_rex->quit = true;
-        PostQuitMessage(0);
-        return 0;
-    case WM_SIZE:
-        g_rex->window_width = LOWORD(lParam);
-        g_rex->window_height = HIWORD(lParam);
-        g_rex->loop(g_rex);
-        _paint(hwnd);
-        break;
-    };
-
-    return DefWindowProc(hwnd, uMsg, wParam, lParam);
-}
 
 inline static void
 _load_rex_module()
 {
 #if REX_HOT_RELOAD == 1
-    WIN32_FILE_ATTRIBUTE_DATA data = {};
-    bool res = GetFileAttributesEx(L"rex-raster.dll", GetFileExInfoStandard, &data);
-    assert(res && "failed to get 'rex.dll'attributes");
-    if (res == false)
-        return;
+	WIN32_FILE_ATTRIBUTE_DATA data = {};
+	bool res = GetFileAttributesEx(L"rex-raster.dll", GetFileExInfoStandard, &data);
+	assert(res && "failed to get 'rex.dll'attributes");
+	if (res == false)
+		return;
 
-    static FILETIME last_time;
-    if (CompareFileTime(&last_time, &data.ftLastWriteTime) == 0)
-        return;
+	static FILETIME last_time;
+	if (CompareFileTime(&last_time, &data.ftLastWriteTime) == 0)
+		return;
 
-    static HMODULE rex_dll;
-    if (rex_dll)
-    {
-        res = FreeLibrary(rex_dll);
-        assert(res && "failed to unload rex.dll");
-    }
+	static HMODULE rex_dll;
+	if (rex_dll)
+	{
+		res = FreeLibrary(rex_dll);
+		assert(res && "failed to unload rex.dll");
+	}
 
-    bool copy_succeeded = CopyFile(L"rex-raster.dll", L"rex-raster_tmp.dll", false);
+	bool copy_succeeded = CopyFile(L"rex-raster.dll", L"rex-raster_tmp.dll", false);
 
-    rex_dll = LoadLibrary(L"rex-raster_tmp.dll");
-    assert(rex_dll && "failed to load rex.dll");
+	rex_dll = LoadLibrary(L"rex-raster_tmp.dll");
+	assert(rex_dll && "failed to load rex.dll");
 
-    g_rex = ((rex_api_proc)GetProcAddress(rex_dll, "rex_api"))(g_rex, true);
+	g_rex = ((rex_api_proc)GetProcAddress(rex_dll, "rex_api"))(g_rex, true);
 
-    if (copy_succeeded)
-        last_time = data.ftLastWriteTime;
+	if (copy_succeeded)
+		last_time = data.ftLastWriteTime;
 #else
-    if (g_rex) return;
-    auto rex_dll = LoadLibrary(L"rex-raster.dll");
-    assert(rex_dll && "failed to load rex.dll");
-    g_rex = ((rex_api_proc)GetProcAddress(rex_dll, "rex_api"))(g_rex, true);
+	if (g_rex) return;
+	auto rex_dll = LoadLibrary(L"rex-raster.dll");
+	assert(rex_dll && "failed to load rex.dll");
+	g_rex = ((rex_api_proc)GetProcAddress(rex_dll, "rex_api"))(g_rex, true);
 #endif
 }
 
-#if 0
-int
-WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-#else
-int
-main()
-#endif
+int main()
 {
-    // set current directory to process directory
-    wchar_t buffer[1024] = {};
-    GetModuleFileName(0, buffer, sizeof(buffer));
-    wchar_t *last_slash = buffer;
-    wchar_t *iter = buffer;
-    while (*iter++)
-        if (*iter == L'\\')
-            last_slash = ++iter;
-    *last_slash = L'\0';
-    bool res = SetCurrentDirectory(buffer);
-    assert(res && "SetCurrentDirectory failed");
+	// set current directory to process directory
+	wchar_t buffer[1024] = {};
+	GetModuleFileName(0, buffer, sizeof(buffer));
+	wchar_t *last_slash = buffer;
+	wchar_t *iter = buffer;
+	while (*iter++)
+		if (*iter == L'\\')
+			last_slash = ++iter;
+	*last_slash = L'\0';
+	bool res = SetCurrentDirectory(buffer);
+	assert(res && "SetCurrentDirectory failed");
 
-    // load rex module for the first time and initialize it
-    _load_rex_module();
-    // initialize platform functions
-    g_rex->alloc = _alloc;
-    g_rex->free = _free;
-    g_rex->file_read = _file_read;
-    g_rex->init(g_rex);
+	// load rex module for the first time and initialize it
+	_load_rex_module();
+	// initialize platform functions
+	g_rex->alloc = _alloc;
+	g_rex->free = _free;
+	g_rex->file_read = _file_read;
+	g_rex->init(g_rex);
 
-    // window creation
-    WNDCLASSEX wcx = {};
-    wcx.cbSize = sizeof(wcx);
-    wcx.style = CS_OWNDC;
-    wcx.lpfnWndProc = _wnd_proc;
-    wcx.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wcx.lpszClassName = L"rex_window_class";
-    ATOM class_atom = RegisterClassEx(&wcx);
-    assert(class_atom != 0 && "RegisterClassExA failed");
+	auto window = rc::window_init("Rex", 1280, 720, g_rex,
+		[](rc::Window* window, rc::i32 width, rc::i32 height) {
+			auto rex = (Rex_Api*)window->user_data;
+			rex->window_width = width;
+			rex->window_height = height;
+			rex->loop(rex);
+			auto pixels = rex_alloc_N_from(rc::frame_allocator(), rc::Color_U8, rex->canvas.width * rex->canvas.height);
+			for (rc::i32 i = 0; i < rex->canvas.width * rex->canvas.height; ++i)
+			{
+				pixels[i].r = (rc::u8)(rex->canvas.pixels[i].r * 255);
+				pixels[i].g = (rc::u8)(rex->canvas.pixels[i].g * 255);
+				pixels[i].b = (rc::u8)(rex->canvas.pixels[i].b * 255);
+				pixels[i].a = (rc::u8)(rex->canvas.pixels[i].a * 255);
+			}
+			rc::window_blit(window, pixels, rex->canvas.width, rex->canvas.height);
+	});
 
-    HWND hwnd = CreateWindowEx(
-        0,
-        MAKEINTATOM(class_atom),
-        L"rex",
-        WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr);
+	// timing
+	timeBeginPeriod(1);
+	LARGE_INTEGER frequency = {};
+	QueryPerformanceFrequency(&frequency);
+	LARGE_INTEGER prev_ticks;
+	QueryPerformanceCounter(&prev_ticks);
 
-    // timing
-    timeBeginPeriod(1);
-    LARGE_INTEGER frequency = {};
-    QueryPerformanceFrequency(&frequency);
-    LARGE_INTEGER prev_ticks;
-    QueryPerformanceCounter(&prev_ticks);
+	bool running = true;
+	while (running)
+	{
+		_load_rex_module();
+		window->user_data = g_rex;
 
-    // game loop
-    while (true)
-    {
-        _load_rex_module();
+		while (rc::window_poll(window))
+		{
+			if (window->last_event.type == rc::EVENT_TYPE_WINDOW_CLOSE)
+			{
+				running = false;
+				break;
+			}
+		}
 
-        // consume window events
-        MSG msg = {};
-        while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
+		// timing in milliseconds (target 30fps)
+		LARGE_INTEGER ticks;
+		QueryPerformanceCounter(&ticks);
+		LONGLONG busy_ms = (ticks.QuadPart - prev_ticks.QuadPart) * 1000 / frequency.QuadPart;
+		if (busy_ms < 33)
+			Sleep((DWORD)(33 - busy_ms));
 
-        // check for quit
-        if (g_rex->quit)
-            break;
+		QueryPerformanceCounter(&ticks);
+		LONGLONG total_ms = (ticks.QuadPart - prev_ticks.QuadPart) * 1000 / frequency.QuadPart;
+		prev_ticks = ticks;
 
-        // timing in milliseconds (target 30fps)
-        LARGE_INTEGER ticks;
-        QueryPerformanceCounter(&ticks);
-        LONGLONG busy_ms = (ticks.QuadPart - prev_ticks.QuadPart) * 1000 / frequency.QuadPart;
-        if (busy_ms < 33)
-            Sleep((DWORD)(33 - busy_ms));
+		auto title = rc::str_fmt(rc::frame_allocator(), "Rex v%d.%d.%d [total: %dms, busy: %dms, free: %dms]",
+			REX_VERSION_MAJOR, REX_VERSION_MINOR, REX_VERSION_PATCH, total_ms, busy_ms, total_ms - busy_ms);
+		rc::window_title_set(window, title.ptr);
 
-        QueryPerformanceCounter(&ticks);
-        LONGLONG total_ms = (ticks.QuadPart - prev_ticks.QuadPart) * 1000 / frequency.QuadPart;
-        prev_ticks = ticks;
+		// rex loop
+		g_rex->dt = total_ms * 0.001f;
+		window->resize_callback(window, window->width, window->height);
+		rc::frame_allocator()->clear();
+	}
 
-        wsprintf(buffer, L"rex v%d.%d.%d [total: %dms, busy: %dms, free: %dms]",
-            REX_VERSION_MAJOR, REX_VERSION_MINOR, REX_VERSION_PATCH, total_ms, busy_ms, total_ms - busy_ms);
-        SetWindowText(hwnd, buffer);
-
-        // rex loop
-        g_rex->dt = total_ms * 0.001f;
-        g_rex->loop(g_rex);
-        _paint(hwnd);
-    }
-
-    // free resources
-    _free(g_blt_bits);
-    DestroyWindow(hwnd);
-    g_rex->deinit(g_rex);
+	// free resources
+	rc::window_deinit(window);
+	g_rex->deinit(g_rex);
 }

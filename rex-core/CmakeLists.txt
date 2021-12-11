@@ -14,11 +14,13 @@ target_sources(rex-core PRIVATE
 	include/rex-core/memory.h
 	include/rex-core/types.h
 	include/rex-core/vec.h
+	include/rex-core/window.h
 	src/assert.cpp
 	src/log.cpp
 	src/memory.cpp
 	src/str.cpp
 	src/winos/console.cpp
+	src/winos/window.cpp
 )
 
 target_include_directories(rex-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
