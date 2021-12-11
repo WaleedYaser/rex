@@ -11,8 +11,6 @@
 #include <windows.h>
 #include <assert.h>
 
-static Rex_Api* g_rex;
-
 inline static void*
 _alloc(size_t size)
 {
@@ -51,45 +49,6 @@ _file_read(const char* path)
 	return res;
 }
 
-
-inline static void
-_load_rex_module()
-{
-#if REX_HOT_RELOAD == 1
-	WIN32_FILE_ATTRIBUTE_DATA data = {};
-	bool res = GetFileAttributesEx(L"rex-raster.dll", GetFileExInfoStandard, &data);
-	assert(res && "failed to get 'rex.dll'attributes");
-	if (res == false)
-		return;
-
-	static FILETIME last_time;
-	if (CompareFileTime(&last_time, &data.ftLastWriteTime) == 0)
-		return;
-
-	static HMODULE rex_dll;
-	if (rex_dll)
-	{
-		res = FreeLibrary(rex_dll);
-		assert(res && "failed to unload rex.dll");
-	}
-
-	bool copy_succeeded = CopyFile(L"rex-raster.dll", L"rex-raster_tmp.dll", false);
-
-	rex_dll = LoadLibrary(L"rex-raster_tmp.dll");
-	assert(rex_dll && "failed to load rex.dll");
-
-	g_rex = ((rex_api_proc)GetProcAddress(rex_dll, "rex_api"))(g_rex, true);
-
-	if (copy_succeeded)
-		last_time = data.ftLastWriteTime;
-#else
-	if (g_rex) return;
-	auto rex_dll = LoadLibrary(L"rex-raster.dll");
-	assert(rex_dll && "failed to load rex.dll");
-	g_rex = ((rex_api_proc)GetProcAddress(rex_dll, "rex_api"))(g_rex, true);
-#endif
-}
-
 int main()
 {
 	// set current directory to process directory
@@ -104,15 +63,17 @@ int main()
 	bool res = SetCurrentDirectory(buffer);
 	assert(res && "SetCurrentDirectory failed");
 
-	// load rex module for the first time and initialize it
-	_load_rex_module();
-	// initialize platform functions
-	g_rex->alloc = _alloc;
-	g_rex->free = _free;
-	g_rex->file_read = _file_read;
-	g_rex->init(g_rex);
+	// TODO: make sure memory allocators initialized first
+	rc::frame_allocator();
 
-	auto window = rc::window_init("Rex", 1280, 720, g_rex,
+	auto rex = load_rex_api();
+	// initialize platform functions
+	rex->alloc = _alloc;
+	rex->free = _free;
+	rex->file_read = _file_read;
+	rex->init(rex);
+
+	auto window = rc::window_init("Rex", 1280, 720, rex,
 		[](rc::Window* window, rc::i32 width, rc::i32 height) {
 			auto rex = (Rex_Api*)window->user_data;
 			rex->window_width = width;
@@ -139,8 +100,8 @@ int main()
 	bool running = true;
 	while (running)
 	{
-		_load_rex_module();
-		window->user_data = g_rex;
+		rex = load_rex_api();
+		window->user_data = rex;
 
 		while (rc::window_poll(window))
 		{
@@ -167,12 +128,12 @@ int main()
 		rc::window_title_set(window, title.ptr);
 
 		// rex loop
-		g_rex->dt = total_ms * 0.001f;
+		rex->dt = total_ms * 0.001f;
 		window->resize_callback(window, window->width, window->height);
 		rc::frame_allocator()->clear();
 	}
 
 	// free resources
 	rc::window_deinit(window);
-	g_rex->deinit(g_rex);
+	rex->deinit(rex);
 }

@@ -1,4 +1,8 @@
-add_library(rex-raster SHARED)
+if (REX_HOT_RELOAD)
+	add_library(rex-raster SHARED)
+else()
+	add_library(rex-raster)
+endif()
 
 include(GenerateExportHeader)
 generate_export_header(rex-raster

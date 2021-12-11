@@ -19,6 +19,7 @@ target_sources(rex-core PRIVATE
 	src/log.cpp
 	src/memory.cpp
 	src/str.cpp
+	src/winos/api.cpp
 	src/winos/console.cpp
 	src/winos/window.cpp
 )

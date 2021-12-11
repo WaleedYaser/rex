@@ -1,5 +1,7 @@
 #pragma once
 
+#include "rex-core/exports.h"
+
 #include <stdbool.h>
 
 // TODO: cleanup
@@ -57,3 +59,5 @@ typedef struct Rex_Api
 } Rex_Api;
 
 typedef Rex_Api* (*rex_api_proc)(Rex_Api*, bool);
+
+REX_CORE_EXPORT Rex_Api* load_rex_api();

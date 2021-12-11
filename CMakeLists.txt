@@ -27,7 +27,11 @@ add_custom_target(rex-deploy-data ALL
 	COMMENT "[rex-deploy]: deploy rex data."
 )
 
-install(TARGETS rex-viewer rex-raster RUNTIME DESTINATION ".")
+if (REX_HOT_RELOAD)
+	install(TARGETS rex-viewer rex-raster RUNTIME DESTINATION ".")
+else()
+	install(TARGETS rex-viewer RUNTIME DESTINATION ".")
+endif()
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/data DESTINATION ".")
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
