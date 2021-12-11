@@ -1,6 +1,10 @@
 #if REX_OS_WINDOWS
 
 #include "rex-core/api.h"
+#include "rex-core/path.h"
+#include "rex-core/str.h"
+#include "rex-core/assert.h"
+
 #include <Windows.h>
 
 #if REX_HOT_RELOAD == 0
@@ -25,9 +29,12 @@ load_rex_api()
 	static Rex_Api_RAII rex;
 
 #if REX_HOT_RELOAD == 1
+	Str dll_path = str_fmt(frame_allocator(), "%s/rex-raster.dll", app_director());
+	Str tmp_path = str_fmt(frame_allocator(), "%s/rex-raster_tmp.dll", app_director());
+
 	WIN32_FILE_ATTRIBUTE_DATA data = {};
-	bool res = GetFileAttributesEx(L"rex-raster.dll", GetFileExInfoStandard, &data);
-	assert(res && "failed to get 'rex.dll'attributes");
+	bool res = GetFileAttributesExA(dll_path.ptr, GetFileExInfoStandard, &data);
+	rex_assert_msg(res, "failed to get 'rex-raster.dll'attributes");
 	if (res == false)
 		return;
 
@@ -39,13 +46,13 @@ load_rex_api()
 	if (rex_dll)
 	{
 		res = FreeLibrary(rex_dll);
-		assert(res && "failed to unload rex.dll");
+		rex_assert_msg(res, "failed to unload rex-raster.dll");
 	}
 
-	bool copy_succeeded = CopyFile(L"rex-raster.dll", L"rex-raster_tmp.dll", false);
+	bool copy_succeeded = CopyFileA(dll_path.ptr, tmp_path.ptr, false);
 
-	rex_dll = LoadLibrary(L"rex-raster_tmp.dll");
-	assert(rex_dll && "failed to load rex.dll");
+	rex_dll = LoadLibraryA(tmp_path.ptr);
+	rex_assert_msg(rex_dll, "failed to load rex-raster_tmp.dll");
 
 	rex.proc = ((rex_api_proc)GetProcAddress(rex_dll, "rex_api"));
 	rex.api = rex.proc(rex.api, true);

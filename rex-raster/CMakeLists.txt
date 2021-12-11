@@ -10,11 +10,11 @@ generate_export_header(rex-raster
 )
 
 target_sources(rex-raster PRIVATE
-	include/rex-raster/constants.h
-	include/rex-raster/geometry.h
-	include/rex-raster/gltf.h
-	include/rex-raster/stb_image.h
-	src/rex.cpp
+	"include/rex-raster/constants.h"
+	"include/rex-raster/geometry.h"
+	"include/rex-raster/gltf.h"
+	"include/rex-raster/stb_image.h"
+	"src/rex.cpp"
 )
 
 target_link_libraries(rex-raster PRIVATE rex-core)

@@ -1,7 +1,3 @@
-#ifndef UNICODE
-#define UNICODE
-#endif
-
 #include <rex-core/api.h>
 #include <rex-core/version.h>
 #include <rex-core/window.h>
@@ -9,23 +5,8 @@
 #include <rex-core/str.h>
 #include <rex-core/time.h>
 
-#include <windows.h>
-#include <assert.h>
-
 int main()
 {
-	// set current directory to process directory
-	wchar_t buffer[1024] = {};
-	GetModuleFileName(0, buffer, sizeof(buffer));
-	wchar_t *last_slash = buffer;
-	wchar_t *iter = buffer;
-	while (*iter++)
-		if (*iter == L'\\')
-			last_slash = ++iter;
-	*last_slash = L'\0';
-	bool res = SetCurrentDirectory(buffer);
-	assert(res && "SetCurrentDirectory failed");
-
 	// TODO: make sure memory allocators initialized first
 	rc::frame_allocator();
 

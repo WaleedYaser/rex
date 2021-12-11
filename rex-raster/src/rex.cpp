@@ -6,6 +6,7 @@
 #include <rex-core/memory.h>
 #include <rex-core/str.h>
 #include <rex-core/defer.h>
+#include <rex-core/path.h>
 
 #include "assert.h"
 
@@ -37,8 +38,9 @@ str_concat(const char *a, const char *b)
 inline static void
 init(Rex_Api* self)
 {
+#if 1
     // parse stl file
-    auto stl_data = rc::file_read("data/dino.stl");
+    auto stl_data = rc::file_read(rc::str_fmt(rc::frame_allocator(), "%s/data/dino.stl", rc::app_directory()));
     rex_defer(rc::str_deinit(stl_data));
     {
         auto ptr = stl_data.ptr;
@@ -71,6 +73,7 @@ init(Rex_Api* self)
         }
     }
 
+#else
     auto gltf = gltf_load(self);
     {
         const char* image_path = "";
@@ -163,6 +166,7 @@ init(Rex_Api* self)
             self->indices = (unsigned int*)(bin_content.ptr + indices_offset);
         }
     }
+#endif
 
     // center model
     {
@@ -219,6 +223,7 @@ loop(Rex_Api* self)
     static float t = 0;
 
 #define STL 1
+// #define TEXTURE 0
 // #define TRI 1
 // #define CUBE 1
 // #define QUAD 1
@@ -282,7 +287,7 @@ loop(Rex_Api* self)
         Vec3 n0 = Vec3{ _n0.x, _n0.y, _n0.z };
         Vec3 n1 = Vec3{ _n1.x, _n1.y, _n1.z };
         Vec3 n2 = Vec3{ _n2.x, _n2.y, _n2.z };
-#else
+#elif TEXTURE
         Vec2 uv0 = self->uvs[i0];
         Vec2 uv1 = self->uvs[i1];
         Vec2 uv2 = self->uvs[i2];
@@ -352,14 +357,16 @@ loop(Rex_Api* self)
                     if (depth > self->depth_buffer[y * canvas.width + x])
                     {
 #if STL
-                        // Pixel color = color_palette[1];
+                        Pixel color = color_palette[2];
 #else
                         Pixel color = w0 * colors[i0] + w1 * colors[i1] + w2 * colors[i2];
 #endif
 
+#if TEXTURE
                         Vec2 uv = w0 * uv0 + w1 * uv1 + w2 * uv2;
                         int idx = (int)(uv.x * (self->image.width - 1)) + (int)(uv.y * (self->image.height - 1)) * self->image.width;
                         Pixel color = self->image.pixels[idx];
+#endif
 
 #define LIGHT 0
 #if LIGHT
