@@ -13,6 +13,7 @@ target_sources(rex-core PRIVATE
 	include/rex-core/file.h
 	include/rex-core/log.h
 	include/rex-core/memory.h
+	include/rex-core/time.h
 	include/rex-core/types.h
 	include/rex-core/vec.h
 	include/rex-core/window.h
@@ -23,6 +24,7 @@ target_sources(rex-core PRIVATE
 	src/winos/api.cpp
 	src/winos/console.cpp
 	src/winos/file.cpp
+	src/winos/time.cpp
 	src/winos/window.cpp
 )
 

@@ -7,6 +7,7 @@
 #include <rex-core/window.h>
 #include <rex-core/memory.h>
 #include <rex-core/str.h>
+#include <rex-core/time.h>
 
 #include <windows.h>
 #include <assert.h>
@@ -48,12 +49,8 @@ int main()
 			rc::window_blit(window, pixels, rex->canvas.width, rex->canvas.height);
 	});
 
-	// timing
-	timeBeginPeriod(1);
-	LARGE_INTEGER frequency = {};
-	QueryPerformanceFrequency(&frequency);
-	LARGE_INTEGER prev_ticks;
-	QueryPerformanceCounter(&prev_ticks);
+	// init timing
+	rc::time_milliseconds();
 
 	bool running = true;
 	while (running)
@@ -70,23 +67,19 @@ int main()
 			}
 		}
 
-		// timing in milliseconds (target 30fps)
-		LARGE_INTEGER ticks;
-		QueryPerformanceCounter(&ticks);
-		LONGLONG busy_ms = (ticks.QuadPart - prev_ticks.QuadPart) * 1000 / frequency.QuadPart;
+		auto busy_ms = rc::time_milliseconds();
 		if (busy_ms < 33)
-			Sleep((DWORD)(33 - busy_ms));
+			rc::sleep((rc::u32)(33 - busy_ms));
 
-		QueryPerformanceCounter(&ticks);
-		LONGLONG total_ms = (ticks.QuadPart - prev_ticks.QuadPart) * 1000 / frequency.QuadPart;
-		prev_ticks = ticks;
+		auto free_ms = rc::time_milliseconds();
+		auto frame_ms = busy_ms + free_ms;
 
-		auto title = rc::str_fmt(rc::frame_allocator(), "Rex v%d.%d.%d [total: %dms, busy: %dms, free: %dms]",
-			REX_VERSION_MAJOR, REX_VERSION_MINOR, REX_VERSION_PATCH, total_ms, busy_ms, total_ms - busy_ms);
+		auto title = rc::str_fmt(rc::frame_allocator(), "Rex v%d.%d.%d [frame: %dms, busy: %dms, free: %dms]",
+			REX_VERSION_MAJOR, REX_VERSION_MINOR, REX_VERSION_PATCH, frame_ms, busy_ms, free_ms);
 		rc::window_title_set(window, title.ptr);
 
 		// rex loop
-		rex->dt = total_ms * 0.001f;
+		rex->dt = frame_ms * 0.001f;
 		window->resize_callback(window, window->width, window->height);
 		rc::frame_allocator()->clear();
 	}

@@ -44,3 +44,4 @@ Rex is a side project I'm working on now for the purpose of learning more about 
 - https://github.com/ssloy/tinyrenderer/wiki/Lesson-0:-getting-started
 - https://www.scratchapixel.com/
 - https://www.youtube.com/c/MollyRocket
+- https://github.com/RandyGaul/cute_headers
