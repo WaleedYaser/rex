@@ -49,8 +49,6 @@ typedef struct Rex_Api
 	float dt;
 
 	// platform functions
-	void* (*alloc)(size_t size);
-	void  (*free)(void *ptr);
 	Content (*file_read)(const char* path);
 
 	void (*init)(Rex_Api* self);

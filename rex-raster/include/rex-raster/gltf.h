@@ -1,6 +1,8 @@
 #pragma once
 
 #include <rex-core/api.h>
+#include <rex-core/memory.h>
+
 #include "stdio.h"
 #include "assert.h"
 #include "stdlib.h"
@@ -467,7 +469,7 @@ gltf_load(Rex_Api* self)
 
     Tokenizer tkz = Tokenizer{gltf_data, 0};
     JSON json = json_parse(&tkz);
-    self->free(gltf_data.data);
+    rex_dealloc(gltf_data.data);
 
     return json;
 }

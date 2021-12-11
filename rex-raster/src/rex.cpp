@@ -1,10 +1,9 @@
-#include <rex-core/api.h>
-#include <rex-core/memory.h>
-
 #include "rex-raster/gltf.h"
 #include "rex-raster/geometry.h"
 #include "rex-raster/constants.h"
 
+#include <rex-core/api.h>
+#include <rex-core/memory.h>
 #include "assert.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -46,8 +45,8 @@ init(Rex_Api* self)
         ptr += 4;
         // allocate data
         self->vertices_count = triangles_number * 3;
-        self->vertices = (Vec3*)self->alloc(self->vertices_count * sizeof(Vec3));
-        self->normals = (Vec3*)self->alloc(self->vertices_count * sizeof(Vec3));
+        self->vertices = rex_alloc_N(Vec3, self->vertices_count);
+        self->normals = rex_alloc_N(Vec3, self->vertices_count);
         // parse triangles
         for (unsigned int i = 0; i < triangles_number; ++i)
         {
@@ -67,7 +66,7 @@ init(Rex_Api* self)
             ptr += 2;
         }
     }
-    self->free(stl_data.data);
+    rex_dealloc(stl_data.data);
 
     auto gltf = gltf_load(self);
     {
@@ -86,7 +85,7 @@ init(Rex_Api* self)
         int width, height, channels;
         unsigned char* data = stbi_load(image_path, &width, &height, &channels, 4);
 
-        self->image.pixels = (Pixel*)self->alloc(width * height * sizeof(Pixel));
+        self->image.pixels = rex_alloc_N(Pixel, width * height);
         self->image.width = width;
         self->image.height = height;
 
@@ -181,9 +180,9 @@ init(Rex_Api* self)
 inline static void
 deinit(Rex_Api* self)
 {
-    self->free(self->image.pixels);
-    self->free(self->depth_buffer);
-    self->free(self->canvas.pixels);
+    rex_dealloc(self->image.pixels);
+    rex_dealloc(self->depth_buffer);
+    rex_dealloc(self->canvas.pixels);
     // self->free(self->vertices);
     // self->free(self->normals);
 }
@@ -196,13 +195,13 @@ loop(Rex_Api* self)
 
     if (canvas.width != self->window_width || canvas.height != self->window_height)
     {
-        self->free(canvas.pixels);
-        canvas.pixels = (Pixel*)self->alloc(self->window_width * self->window_height * sizeof(Pixel));
+        rex_dealloc(canvas.pixels);
+        canvas.pixels = rex_alloc_N(Pixel, self->window_width * self->window_height);
         canvas.width = self->window_width;
         canvas.height = self->window_height;
 
-        self->free(self->depth_buffer);
-        self->depth_buffer = (float*)self->alloc(self->window_width * self->window_height * sizeof(float));
+        rex_dealloc(self->depth_buffer);
+        self->depth_buffer = rex_alloc_N(float, self->window_width * self->window_height);
     }
 
     // clear color and depth

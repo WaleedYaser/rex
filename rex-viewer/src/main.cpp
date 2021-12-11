@@ -11,18 +11,6 @@
 #include <windows.h>
 #include <assert.h>
 
-inline static void*
-_alloc(size_t size)
-{
-	return VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-}
-
-inline static void
-_free(void* ptr)
-{
-	VirtualFree(ptr, 0, MEM_RELEASE);
-}
-
 inline static Content
 _file_read(const char* path)
 {
@@ -36,13 +24,13 @@ _file_read(const char* path)
 		return {};
 
 	DWORD bytes_read = 0;
-	res.data = (unsigned char*)_alloc(res.size);
+	res.data = rex_alloc_N(unsigned char, res.size);
 	bool read_res = ReadFile(hfile, res.data, res.size, &bytes_read, nullptr);
 	CloseHandle(hfile);
 
 	if (read_res == false)
 	{
-		_free(res.data);
+		rex_dealloc(res.data);
 		return {};
 	}
 
@@ -68,8 +56,6 @@ int main()
 
 	auto rex = load_rex_api();
 	// initialize platform functions
-	rex->alloc = _alloc;
-	rex->free = _free;
 	rex->file_read = _file_read;
 	rex->init(rex);
 
