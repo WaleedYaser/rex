@@ -185,7 +185,7 @@ namespace rc
 	}
 
 
-	Window *
+	Window*
 	window_init(const char *title, i32 width, i32 height, void* user_data, resize_callback_t resize_callback)
 	{
 		auto self = rex_alloc_zeroed_T(Window);
@@ -200,7 +200,7 @@ namespace rc
 		ATOM class_atom = RegisterClassExA(&wc);
 		if (class_atom == 0)
 		{
-			rex_assert_msg(false, "[rex-core] failed to register window class");
+			rex_assert_msg(false, "[rex-core]: failed to register window class");
 			rex_dealloc(self);
 			return nullptr;
 		}
@@ -247,7 +247,7 @@ namespace rc
 	}
 
 	void
-	window_deinit(Window *self)
+	window_deinit(Window* self)
 	{
 		if (DestroyWindow((HWND)self->native_handle) == false)
 		{
@@ -257,7 +257,7 @@ namespace rc
 	}
 
 	bool
-	window_poll(Window *self)
+	window_poll(Window* self)
 	{
 		self->last_event = {};
 

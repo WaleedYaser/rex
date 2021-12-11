@@ -1,19 +1,32 @@
 #pragma once
 
-extern "C" {
-    // forward declaration (cmath)
-    double sqrt(double);
-    double sin(double);
-    double cos(double);
-    double tan(double);
-    double asin(double);
-    double atan2(double, double);
-}
+// extern "C" {
+// #if REX_OS_WINDOWS
+//     // forward declaration (cmath)
+//     double sqrt(double);
+//     double sin(double);
+//     double cos(double);
+//     double tan(double);
+//     double asin(double);
+//     double atan2(double, double);
+// #elif REX_OS_LINUX
+// 	double sqrt(double) throw();
+// 	double sin(double) throw();
+// 	double cos(double) throw();
+// 	double tan(double) throw();
+// 	double asin(double) throw();
+// 	double atan2(double, double) throw();
+// #else
+// 	#error "Unhandled operating system"
+// #endif
+// }
 
-inline static float sqrt(float f) { return (float)::sqrt((double)f); }
-inline static float sin(float f) { return (float)::sin((double)f); }
-inline static float cos(float f) { return (float)::cos((double)f); }
-inline static float tan(float f) { return (float)::tan((double)f); }
+#include <math.h>
+
+// inline static float sqrt(float f) { return (float)std::sqrt((double)f); }
+// inline static float sin(float f) { return (float)std::sin((double)f); }
+// inline static float cos(float f) { return (float)std::cos((double)f); }
+// inline static float tan(float f) { return (float)std::tan((double)f); }
 
 inline static float min(float a, float b) { return a < b ? a : b; }
 inline static float max(float a, float b) { return a > b ? a : b; }

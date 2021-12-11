@@ -1,5 +1,6 @@
 #include "rex-core/log.h"
 #include "rex-core/console.h"
+#include "rex-core/str.h"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -28,10 +29,9 @@ namespace rc
 
 		// add level string to formated message and store result in message_with_level, we have the
 		// same size limit for message_with_level
-		char message_with_level[32 * 1024];
-		sprintf_s(message_with_level, sizeof(message_with_level), "%s%s\n", level_strings[level], formated_message);
+		auto message_with_level = str_fmt(frame_allocator(), "%s%s\n", level_strings[level], formated_message);
 
-		CONSOLE_COLOR color;
+		CONSOLE_COLOR color = {};
 		switch (level)
 		{
 			case REX_LOG_LEVEL_TRACE: color = CONSOLE_COLOR_FG_GRAY; break;
@@ -44,8 +44,8 @@ namespace rc
 
 		// if level is error write it to error console instead
 		if (level > REX_LOG_LEVEL_WARN)
-			console_write_error(message_with_level, color);
+			console_write_error(message_with_level.ptr, color);
 		else
-			console_write(message_with_level, color);
+			console_write(message_with_level.ptr, color);
 	}
 }

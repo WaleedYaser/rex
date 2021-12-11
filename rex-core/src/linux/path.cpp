@@ -1,7 +1,10 @@
-#if REX_OS_WINDOWS
-#include "rex-core/path.h"
+#if REX_OS_LINUX
 
-#include <windows.h>
+#include "rex-core/path.h"
+#include "rex-core/log.h"
+
+#include <unistd.h>
+#include <stdlib.h>
 
 namespace rc
 {
@@ -14,15 +17,19 @@ namespace rc
 		{
 			init = false;
 
-			GetModuleFileNameA(0, buffer, sizeof(buffer));
+			char relative[1024] = {};
+			readlink("/proc/self/exe", relative, sizeof(relative));
+			realpath(relative, buffer);
+
 			char* last_slash = buffer;
 			char* iter = buffer;
 			while (*iter++)
-				if (*iter == '\\')
+				if (*iter == '/')
 					last_slash = ++iter;
 			*last_slash = '\0';
-		}
 
+			rex_log_info(buffer);
+		}
 		return buffer;
 	}
 }

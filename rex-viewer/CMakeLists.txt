@@ -9,8 +9,6 @@ if (REX_HOT_RELOAD)
 	target_compile_definitions(rex-viewer PRIVATE -DREX_HOT_RELOAD=1)
 endif()
 
-target_link_libraries(rex-viewer PRIVATE Winmm)
-
 target_compile_options(rex-viewer PRIVATE
 	$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>: -Werror -Weverything>
 	$<$<CXX_COMPILER_ID:GNU>: -Wall -Wextra>

@@ -1,4 +1,5 @@
-#include "rex-raster/gltf.h"
+// #include "rex-raster/gltf.h"
+#include "rex-raster/exports.h"
 #include "rex-raster/geometry.h"
 #include "rex-raster/constants.h"
 
@@ -7,6 +8,7 @@
 #include <rex-core/str.h>
 #include <rex-core/defer.h>
 #include <rex-core/path.h>
+#include <rex-core/file.h>
 
 #include "assert.h"
 
@@ -214,7 +216,7 @@ loop(Rex_Api* self)
     // clear color and depth
     for (int i = 0; i < canvas.height * canvas.width; ++i)
     {
-        canvas.pixels[i] = color_palette[1];
+        canvas.pixels[i] = { 0.1f, 0.1f, 0.1f, 1.0f };
         self->depth_buffer[i] = -300.0f;
     }
 
@@ -230,10 +232,10 @@ loop(Rex_Api* self)
 
 #if STL
     Vec3* vertices = self->vertices;
-    // Vec3* normals = self->normals;
+    Vec3* normals = self->normals;
     int count = self->indices_count > 0 ? self->indices_count : self->vertices_count;
     // model matrix
-    Mat4 model =  /* mat4_rotation_x(-3.14f * 0.5f) * */ mat4_rotation_y(t) * mat4_translation(0, 0, -self->camera_z);
+    Mat4 model =  mat4_rotation_x(-3.14f * 0.5f) * mat4_rotation_y(t) * mat4_translation(0, 0, -self->camera_z);
 #elif TRI
     const Vec3* vertices = triangle_vertices;
     const Vec3* normals = triangle_normals;
@@ -279,7 +281,7 @@ loop(Rex_Api* self)
         Vec3 v2_w = Vec3{ _v2_w.x, _v2_w.y, _v2_w.z };
 
         // transform normals to world space
-#if QUAD == 1
+#if 1
         Vec4 _n0 = Vec4{ normals[i0].x, normals[i0].y, normals[i0].z, 0.0f } * model;
         Vec4 _n1 = Vec4{ normals[i1].x, normals[i1].y, normals[i1].z, 0.0f } * model;
         Vec4 _n2 = Vec4{ normals[i2].x, normals[i2].y, normals[i2].z, 0.0f } * model;
@@ -368,7 +370,7 @@ loop(Rex_Api* self)
                         Pixel color = self->image.pixels[idx];
 #endif
 
-#define LIGHT 0
+#define LIGHT 1
 #if LIGHT
                         Pixel light_color = Pixel{1.0f, 1.0f, 1.0f, 1.0f} * 1.0f;
                         Vec3 light_pos = {};
@@ -409,7 +411,7 @@ loop(Rex_Api* self)
 extern "C" {
 #endif
 
-__declspec(dllexport) Rex_Api*
+REX_RASTER_EXPORT Rex_Api*
 rex_api(Rex_Api* api, bool reload)
 {
     if (api == nullptr)

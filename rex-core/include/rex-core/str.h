@@ -36,13 +36,13 @@ namespace rc
 	REX_CORE_EXPORT void str_append(Str& self, const Str& other);
 	REX_CORE_EXPORT void str_append(Str& self, const char* format, ...);
 
-	REX_CORE_EXPORT bool operator==(Str& self, Str& other);
+	REX_CORE_EXPORT bool operator==(const Str& self, const Str& other);
 
-	inline static bool operator!=(Str& self, Str& other)        { return !(self == other); }
-	inline static bool operator==(Str& self, const char* other) { return self == str_lit(other); }
-	inline static bool operator!=(Str& self, const char* other) { return !(self == other); }
-	inline static bool operator==(const char* self, Str& other) { return str_lit(self) == other; }
-	inline static bool operator!=(const char* self, Str& other) { return !(self == other); }
+	inline static bool operator!=(const Str& self, const Str& other)  { return !(self == other); }
+	inline static bool operator==(const Str& self, const char* other) { return self == str_lit(other); }
+	inline static bool operator!=(const Str& self, const char* other) { return !(self == other); }
+	inline static bool operator==(const char* self, const Str& other) { return str_lit(self) == other; }
+	inline static bool operator!=(const char* self, const Str& other) { return !(self == other); }
 
 	struct Str32_Stream { Str utf8; };
 	struct REX_CORE_EXPORT Str32_Iterator

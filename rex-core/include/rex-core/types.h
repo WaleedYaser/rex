@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 namespace rc
 {
 	// unsigned int types

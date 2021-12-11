@@ -134,7 +134,7 @@ namespace rc
 	}
 
 	bool
-	operator==(Str& self, Str& other)
+	operator==(const Str& self, const Str& other)
 	{
 		if (self.count != other.count)
 			return false;
@@ -221,7 +221,7 @@ namespace rc
 	Str32_Iterator
 	end(const Str32_Stream& self)
 	{
-		return { end(self.utf8) };
+		return { end(self.utf8), 0, 0 };
 	}
 
 	Str32

@@ -18,19 +18,33 @@ target_sources(rex-core PRIVATE
 	"include/rex-core/vec.h"
 	"include/rex-core/window.h"
 	"include/rex-core/path.h"
+
 	"src/assert.cpp"
 	"src/log.cpp"
 	"src/memory.cpp"
 	"src/str.cpp"
+
 	"src/winos/api.cpp"
 	"src/winos/console.cpp"
 	"src/winos/file.cpp"
 	"src/winos/path.cpp"
 	"src/winos/time.cpp"
 	"src/winos/window.cpp"
+
+	"src/linux/api.cpp"
+	"src/linux/console.cpp"
+	"src/linux/file.cpp"
+	"src/linux/path.cpp"
+	"src/linux/time.cpp"
+	"src/linux/window.cpp"
 )
 
 target_include_directories(rex-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+target_link_libraries(rex-core PRIVATE
+	$<$<CXX_COMPILER_ID:GNU>: xcb xcb-keysyms xcb-image>
+	# $<$<CXX_COMPILER_ID:MSVC>: Winmm>
+)
 
 target_compile_options(rex-core
 	PRIVATE

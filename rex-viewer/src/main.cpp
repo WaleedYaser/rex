@@ -8,7 +8,7 @@
 int main()
 {
 	// TODO: make sure memory allocators initialized first
-	rc::frame_allocator();
+	rc::rex_allocator();
 
 	auto rex = load_rex_api();
 	rex->init(rex);
