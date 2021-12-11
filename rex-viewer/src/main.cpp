@@ -11,32 +11,6 @@
 #include <windows.h>
 #include <assert.h>
 
-inline static Content
-_file_read(const char* path)
-{
-	HANDLE hfile = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
-	if (hfile == INVALID_HANDLE_VALUE)
-		return {};
-
-	Content res = {};
-	res.size = GetFileSize(hfile, nullptr);
-	if (res.size == INVALID_FILE_SIZE)
-		return {};
-
-	DWORD bytes_read = 0;
-	res.data = rex_alloc_N(unsigned char, res.size);
-	bool read_res = ReadFile(hfile, res.data, res.size, &bytes_read, nullptr);
-	CloseHandle(hfile);
-
-	if (read_res == false)
-	{
-		rex_dealloc(res.data);
-		return {};
-	}
-
-	return res;
-}
-
 int main()
 {
 	// set current directory to process directory
@@ -55,8 +29,6 @@ int main()
 	rc::frame_allocator();
 
 	auto rex = load_rex_api();
-	// initialize platform functions
-	rex->file_read = _file_read;
 	rex->init(rex);
 
 	auto window = rc::window_init("Rex", 1280, 720, rex,

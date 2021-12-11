@@ -4,6 +4,9 @@
 
 #include <rex-core/api.h>
 #include <rex-core/memory.h>
+#include <rex-core/str.h>
+#include <rex-core/defer.h>
+
 #include "assert.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -35,9 +38,10 @@ inline static void
 init(Rex_Api* self)
 {
     // parse stl file
-    Content stl_data = self->file_read("data/dino.stl");
+    auto stl_data = rc::file_read("data/dino.stl");
+    rex_defer(rc::str_deinit(stl_data));
     {
-        unsigned char* ptr = stl_data.data;
+        auto ptr = stl_data.ptr;
         // skip header (80 bytes)
         ptr += 80;
         // number of triangles (4 bytes)
@@ -66,7 +70,6 @@ init(Rex_Api* self)
             ptr += 2;
         }
     }
-    rex_dealloc(stl_data.data);
 
     auto gltf = gltf_load(self);
     {
@@ -104,8 +107,8 @@ init(Rex_Api* self)
             auto buffer_length = json_find(buffer, "byteLength").as_int;
             auto buffer_uri = json_find(buffer, "uri").as_str;
 
-            auto bin_content = self->file_read(str_concat("data/girl/", buffer_uri));
-            assert(bin_content.size == buffer_length);
+            auto bin_content = rc::file_read(str_concat("data/girl/", buffer_uri));
+            assert(bin_content.count == buffer_length);
 
             // load only first mesh
             auto meshes = json_find(gltf.root, "meshes");
@@ -154,10 +157,10 @@ init(Rex_Api* self)
             uv_offset += json_find(uv_view, "byteOffset").as_int;
             indices_offset += json_find(indices_view, "byteOffset").as_int;
 
-            self->vertices = (Vec3*)(bin_content.data + position_offset);
-            self->normals = (Vec3*)(bin_content.data + normal_offset);
-            self->uvs = (Vec2*)(bin_content.data + uv_offset);
-            self->indices = (unsigned int*)(bin_content.data + indices_offset);
+            self->vertices = (Vec3*)(bin_content.ptr + position_offset);
+            self->normals = (Vec3*)(bin_content.ptr + normal_offset);
+            self->uvs = (Vec2*)(bin_content.ptr + uv_offset);
+            self->indices = (unsigned int*)(bin_content.ptr + indices_offset);
         }
     }
 

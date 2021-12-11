@@ -10,6 +10,7 @@ target_sources(rex-core PRIVATE
 	include/rex-core/assert.h
 	include/rex-core/console.h
 	include/rex-core/defer.h
+	include/rex-core/file.h
 	include/rex-core/log.h
 	include/rex-core/memory.h
 	include/rex-core/types.h
@@ -21,6 +22,7 @@ target_sources(rex-core PRIVATE
 	src/str.cpp
 	src/winos/api.cpp
 	src/winos/console.cpp
+	src/winos/file.cpp
 	src/winos/window.cpp
 )
 

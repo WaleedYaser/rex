@@ -17,12 +17,6 @@ typedef struct Image
 	Pixel* pixels;
 } Image;
 
-typedef struct Content
-{
-	unsigned char* data;
-	unsigned int size;
-} Content;
-
 struct Vec2;
 struct Vec3;
 
@@ -47,9 +41,6 @@ typedef struct Rex_Api
 	bool quit;
 	int window_width, window_height;
 	float dt;
-
-	// platform functions
-	Content (*file_read)(const char* path);
 
 	void (*init)(Rex_Api* self);
 	void (*deinit)(Rex_Api* self);

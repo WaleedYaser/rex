@@ -2,6 +2,8 @@
 
 #include <rex-core/api.h>
 #include <rex-core/memory.h>
+#include <rex-core/file.h>
+#include <rex-core/defer.h>
 
 #include "stdio.h"
 #include "assert.h"
@@ -36,7 +38,7 @@ struct Token
 
 struct Tokenizer
 {
-    Content content;
+    rc::Str content;
     unsigned int cursor;
 };
 
@@ -44,7 +46,7 @@ inline static Token
 tokenizer_top(Tokenizer* self)
 {
     do {
-        auto ptr = self->content.data + self->cursor;
+        auto ptr = self->content.ptr + self->cursor;
 
         switch (*ptr)
         {
@@ -144,7 +146,7 @@ tokenizer_top(Tokenizer* self)
             self->cursor += 1;
             break;
         }
-    } while (self->cursor < self->content.size);
+    } while (self->cursor < self->content.count);
 
     return Token{ Token::TYPE_EOF };
 }
@@ -153,7 +155,7 @@ inline static Token
 tokenizer_next(Tokenizer* self)
 {
     do {
-        auto ptr = self->content.data + self->cursor;
+        auto ptr = self->content.ptr + self->cursor;
 
         switch (*ptr)
         {
@@ -265,7 +267,7 @@ tokenizer_next(Tokenizer* self)
             self->cursor += 1;
             break;
         }
-    } while (self->cursor < self->content.size);
+    } while (self->cursor < self->content.count);
 
     return Token{ Token::TYPE_EOF };
 }
@@ -465,11 +467,11 @@ inline static JSON
 gltf_load(Rex_Api* self)
 {
     // parse gltf file
-    Content gltf_data = self->file_read("data/girl/scene.gltf");
+    auto gltf_data = rc::file_read("data/girl/scene.gltf");
+    rex_defer(rc::str_deinit(gltf_data));
 
     Tokenizer tkz = Tokenizer{gltf_data, 0};
     JSON json = json_parse(&tkz);
-    rex_dealloc(gltf_data.data);
 
     return json;
 }
