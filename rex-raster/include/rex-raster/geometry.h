@@ -71,7 +71,7 @@ dot(const Vec3 &a, const Vec3 &b)
 inline static float
 norm(const Vec3 &v)
 {
-    return sqrt(dot(v, v));
+    return sqrtf(dot(v, v));
 }
 
 inline static float
@@ -158,8 +158,8 @@ mat4_translation(float tx, float ty, float tz)
 inline static Mat4
 mat4_rotation_x(float pitch)
 {
-    float c = cos(pitch);
-    float s = sin(pitch);
+    float c = cosf(pitch);
+    float s = sinf(pitch);
 
     return Mat4{
         1,  0, 0, 0,
@@ -172,8 +172,8 @@ mat4_rotation_x(float pitch)
 inline static Mat4
 mat4_rotation_y(float head)
 {
-    float c = cos(head);
-    float s = sin(head);
+    float c = cosf(head);
+    float s = sinf(head);
 
     return Mat4{
         c, 0, -s, 0,
@@ -186,8 +186,8 @@ mat4_rotation_y(float head)
 inline static Mat4
 mat4_rotation_z(float roll)
 {
-    float c = cos(roll);
-    float s = sin(roll);
+    float c = cosf(roll);
+    float s = sinf(roll);
 
     return Mat4{
             c, s, 0, 0,
@@ -200,12 +200,12 @@ mat4_rotation_z(float roll)
 inline static Mat4
 mat4_euler(float pitch, float head, float roll)
 {
-    float sh = sin(head);
-    float ch = cos(head);
-    float sp = sin(pitch);
-    float cp = cos(pitch);
-    float sr = sin(roll);
-    float cr = cos(roll);
+    float sh = sinf(head);
+    float ch = cosf(head);
+    float sp = sinf(pitch);
+    float cp = cosf(pitch);
+    float sr = sinf(roll);
+    float cr = cosf(roll);
 
     // order yxz
     return Mat4{
@@ -221,7 +221,7 @@ mat4_perspective(float fovy, float aspect, float znear, float zfar)
 {
     Mat4 M{};
 
-    float h = tan(fovy / 2.0f);
+    float h = tanf(fovy / 2.0f);
     float w = aspect * h;
 
     M[0][0] = 1.0f / w;

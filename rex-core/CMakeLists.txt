@@ -42,8 +42,8 @@ target_sources(rex-core PRIVATE
 target_include_directories(rex-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_link_libraries(rex-core PRIVATE
-	$<$<CXX_COMPILER_ID:GNU>: xcb xcb-keysyms xcb-image>
-	# $<$<CXX_COMPILER_ID:MSVC>: Winmm>
+	$<$<PLATFORM_ID:Windows>:Winmm>
+	$<$<PLATFORM_ID:Linux>:xcb,xcb-keysyms,xcb-image>
 )
 
 target_compile_options(rex-core

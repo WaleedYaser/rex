@@ -1,8 +1,8 @@
 #include "rex-core/memory.h"
 #include "rex-core/assert.h"
-#include "rex-core/log.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 // TODO: implement malloc http://dmitrysoshnikov.com/compilers/writing-a-memory-allocator/
 namespace rc
@@ -70,9 +70,9 @@ namespace rc
 		{
 			if (leaked > 0)
 			{
-				rex_log_warn("Total leaked memory: %lld bytes", leaked);
+				fprintf(stderr, "[rex-core]: Total leaked memory: %lld bytes\n", leaked);
 				for (auto it = top; it != nullptr; it = it->prev)
-					rex_log_warn("\t(%lld bytes) at %s(%lld): %s", it->size, it->file, it->line, it->function);
+					fprintf(stderr, "\t(%lld bytes) at %s(%lld): %s\n", it->size, it->file, it->line, it->function);
 			}
 		}
 	};
@@ -144,7 +144,7 @@ namespace rc
 			return;
 
 		clear();
-		rex_log_info("Frame allocator initial capacity: %lld bytes and peak: %lld bytes",
+		printf("[rex-core]: Frame allocator initial capacity: %lld bytes and peak: %lld bytes\n",
 			FRAME_ALLOCATOR_INITIAL_CAPACITY, peak_size);
 		rex_dealloc(head);
 	}
