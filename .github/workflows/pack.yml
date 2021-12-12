@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest]
-        build-variant: [Debug, Release]
+        build-variant: [Release]
     steps:
     - uses: actions/checkout@v2
       with:
