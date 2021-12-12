@@ -14,9 +14,18 @@ Rex is a side project I'm working on now for the purpose of learning more about 
 
 ## Supported platforms
 - Windows
+- Linux
+
+## Linux dependencies
+	sudo apt install -y libxcb1-dev libxcb-util-dev libxcb-keysyms1-dev libxcb-image0-dev
 
 ## Build and install
 - Download and install CMake (at least version 3.12): https://cmake.org/download/
+- On Linux make sure to install these dependencies:
+	```
+	sudo apt install -y libxcb1-dev libxcb-util-dev libxcb-keysyms1-dev libxcb-image0-dev
+	```
+
 - Configure and build the project by executing the following commands:
 	```
 	cmake -B build -DCMAKE_BUILD_TYPE=Release
