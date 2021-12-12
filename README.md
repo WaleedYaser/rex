@@ -5,8 +5,11 @@
 [![](https://img.shields.io/badge/OS-ubuntu--latest-blue)](https://github.com/WaleedYaser/rex)
 [![](http://github-actions.40ants.com/WaleedYaser/rex/matrix.svg?only=unit-tests.build.ubuntu-latest)](https://github.com/WaleedYaser/rex)
 
-[![Project Status: Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![unit-tests](https://github.com/WaleedYaser/rex/actions/workflows/utests.yml/badge.svg)](https://github.com/WaleedYaser/rex/actions/workflows/utests.yml)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/WaleedYaser/rex.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/WaleedYaser/rex/alerts/)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/WaleedYaser/rex.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/WaleedYaser/rex/context:cpp)
+
+[![Project Status: Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 ![Lines of code](https://img.shields.io/tokei/lines/github/WaleedYaser/rex)
 ![GitHub repo size](https://img.shields.io/github/repo-size/WaleedYaser/rex)
 
