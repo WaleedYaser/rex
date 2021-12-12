@@ -72,7 +72,7 @@ namespace rc
 			{
 				fprintf(stderr, "[rex-core]: Total leaked memory: %lld bytes\n", leaked);
 				for (auto it = top; it != nullptr; it = it->prev)
-					fprintf(stderr, "\t(%lld bytes) at %s(%lld): %s\n", it->size, it->file, it->line, it->function);
+					fprintf(stderr, "\t(%zu bytes) at %s(%zu): %s\n", it->size, it->file, it->line, it->function);
 			}
 		}
 	};
@@ -144,7 +144,7 @@ namespace rc
 			return;
 
 		clear();
-		printf("[rex-core]: Frame allocator initial capacity: %lld bytes and peak: %lld bytes\n",
+		printf("[rex-core]: Frame allocator initial capacity: %zu bytes and peak: %zu bytes\n",
 			FRAME_ALLOCATOR_INITIAL_CAPACITY, peak_size);
 		rex_dealloc(head);
 	}
