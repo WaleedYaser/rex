@@ -4,6 +4,23 @@
 #include <rex-core/memory.h>
 #include <rex-core/str.h>
 #include <rex-core/time.h>
+#include <rex-core/log.h>
+
+#if REX_OS_WASM
+# include <emscripten.h>
+
+rc::Window* g_window;
+
+void
+wasm_main_loop()
+{
+	// rex_log_info("wasm main loop");
+	auto rex = (Rex_Api*)g_window->user_data;
+	rex->dt = 33 * 0.001f;
+	g_window->resize_callback(g_window, g_window->width, g_window->height);
+	rc::frame_allocator()->clear();
+}
+#endif
 
 int main()
 {
@@ -30,6 +47,10 @@ int main()
 			rc::window_blit(window, pixels, rex->canvas.width, rex->canvas.height);
 	});
 
+#if REX_OS_WASM
+	g_window = window;
+	emscripten_set_main_loop(wasm_main_loop, 0, 1);
+#else
 	// init timing
 	rc::time_milliseconds();
 
@@ -64,6 +85,7 @@ int main()
 		window->resize_callback(window, window->width, window->height);
 		rc::frame_allocator()->clear();
 	}
+#endif
 
 	// free resources
 	rc::window_deinit(window);

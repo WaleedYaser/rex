@@ -9,6 +9,7 @@
 #include <rex-core/defer.h>
 #include <rex-core/path.h>
 #include <rex-core/file.h>
+#include <rex-core/log.h>
 
 #include "assert.h"
 
@@ -41,6 +42,7 @@ inline static void
 init(Rex_Api* self)
 {
 #if 1
+#if 0
     // parse stl file
     auto stl_data = rc::file_read(rc::str_fmt(rc::frame_allocator(), "%s/data/dino.stl", rc::app_directory()));
     rex_defer(rc::str_deinit(stl_data));
@@ -74,6 +76,11 @@ init(Rex_Api* self)
             ptr += 2;
         }
     }
+#endif
+
+    self->vertices = (Vec3*)cube_vertices;
+    self->normals = (Vec3*)cube_normals;
+    self->vertices_count = cube_vertices_count;
 
 #else
     auto gltf = gltf_load(self);
@@ -353,6 +360,7 @@ loop(Rex_Api* self)
                 w1 *= (z / v1_w.z);
                 w2 *= (z / v2_w.z);
 
+                // rex_log_info("pass");
                 if (w0 > 0 && w1 > 0 && w2 > 0)
                 {
                     float depth = w0 * v0_w.z + w1 * v1_w.z + w2 * v2_w.z;

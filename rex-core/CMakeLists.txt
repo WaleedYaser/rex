@@ -37,6 +37,13 @@ target_sources(rex-core PRIVATE
 	"src/linux/path.cpp"
 	"src/linux/time.cpp"
 	"src/linux/window.cpp"
+
+	"src/wasm/api.cpp"
+	"src/wasm/console.cpp"
+	"src/wasm/file.cpp"
+	"src/wasm/path.cpp"
+	"src/wasm/time.cpp"
+	"src/wasm/window.cpp"
 )
 
 target_include_directories(rex-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -48,18 +55,19 @@ target_link_libraries(rex-core PRIVATE
 	$<$<PLATFORM_ID:Linux>:xcb-image>
 )
 
-target_compile_options(rex-core
-	PRIVATE
-		$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>: -Werror -Weverything>
-		$<$<CXX_COMPILER_ID:GNU>: -Wall -Wextra>
-		$<$<CXX_COMPILER_ID:MSVC>: /WX>
-	PUBLIC
-		$<$<CXX_COMPILER_ID:MSVC>: /utf-8>
-)
+# target_compile_options(rex-core
+# 	PRIVATE
+# 		$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>: -Werror -Weverything>
+# 		$<$<CXX_COMPILER_ID:GNU>: -Wall -Wextra>
+# 		$<$<CXX_COMPILER_ID:MSVC>: /WX>
+# 	PUBLIC
+# 		$<$<CXX_COMPILER_ID:MSVC>: /utf-8>
+# )
 
 target_compile_definitions(rex-core PUBLIC
 	$<$<PLATFORM_ID:Windows>:REX_OS_WINDOWS=1>
 	$<$<PLATFORM_ID:Linux>:REX_OS_LINUX=1>
+	$<$<PLATFORM_ID:Emscripten>:REX_OS_WASM=1>
 	$<$<CXX_COMPILER_ID:MSVC>:REX_COMPILER_MSVC=1>
 	$<$<CXX_COMPILER_ID:GNU>:REX_COMPILER_GNU=1>
 	$<$<CXX_COMPILER_ID:Clang>:REX_COMPILER_CLANG=1>

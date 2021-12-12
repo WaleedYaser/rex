@@ -18,6 +18,7 @@ Rex is a side project I'm working on now for the purpose of learning more about 
 ## Supported platforms
 - Windows
 - Linux
+- Web-Assembly (https://waleedyaser.github.io/rex-wasm/)
 
 ## Build and install
 - Download and install CMake (at least version 3.12): https://cmake.org/download/
@@ -54,3 +55,5 @@ Rex is a side project I'm working on now for the purpose of learning more about 
 - https://www.scratchapixel.com/
 - https://www.youtube.com/c/MollyRocket
 - https://github.com/RandyGaul/cute_headers
+- http://marcelbraghetto.github.io/a-simple-triangle/2019/03/10/part-06/?utm_source=pocket_mylist
+- https://github.com/MoustaphaSaad/mn

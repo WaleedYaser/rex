@@ -27,6 +27,11 @@ add_custom_target(rex-deploy-data ALL
 	COMMENT "[rex-deploy]: deploy rex data."
 )
 
+# add_custom_target(rex-deploy-index ALL
+# 	COMMAND ${CMAKE_COMMAND} -E copy ${REX_CORE_DIR}/src/wasm/index.html ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html
+# 	COMMENT "[rex-deploy]: deploy rex index.html."
+# )
+
 if (REX_HOT_RELOAD)
 	install(TARGETS rex-viewer rex-raster RUNTIME DESTINATION ".")
 else()
