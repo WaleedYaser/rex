@@ -27,17 +27,22 @@ add_custom_target(rex-deploy-data ALL
 	COMMENT "[rex-deploy]: deploy rex data."
 )
 
-# add_custom_target(rex-deploy-index ALL
-# 	COMMAND ${CMAKE_COMMAND} -E copy ${REX_CORE_DIR}/src/wasm/index.html ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html
-# 	COMMENT "[rex-deploy]: deploy rex index.html."
-# )
+if (EMSCRIPTEN)
+	add_custom_target(rex-deploy-index ALL
+		COMMAND ${CMAKE_COMMAND} -E copy ${REX_CORE_DIR}/src/wasm/index.html ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html
+		COMMENT "[rex-deploy]: deploy rex index.html."
+	)
+
+	install(FILES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html DESTINATION ".")
+endif()
 
 if (REX_HOT_RELOAD)
 	install(TARGETS rex-viewer rex-raster RUNTIME DESTINATION ".")
 else()
 	install(TARGETS rex-viewer RUNTIME DESTINATION ".")
 endif()
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/data DESTINATION ".")
+install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/data DESTINATION ".")
+
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

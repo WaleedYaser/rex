@@ -1,0 +1,33 @@
+name: Deploy-WASM
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Setup emsdk
+      uses: mymindstorm/setup-emsdk@v11
+      with:
+        version: 3.0.0
+        actions-cache-folder: 'emsdk-cache'
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+
+    - name: Build
+      run: cmake --build build --target rex-viewer rex-deploy-index -j
+
+    - name: Deploy
+      uses: dmnemec/copy_file_to_another_repo_action@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source_file: 'build/bin/*'
+        destination_repo: 'WaleedYaser/rex-wasm'
+        user_email: 'waleedyaser95@gmail.com'
+        user_name: 'WaleedYaser'
