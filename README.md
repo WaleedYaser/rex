@@ -57,3 +57,4 @@ Rex is a side project I'm working on now for the purpose of learning more about 
 - https://github.com/RandyGaul/cute_headers
 - http://marcelbraghetto.github.io/a-simple-triangle/2019/03/10/part-06/?utm_source=pocket_mylist
 - https://github.com/MoustaphaSaad/mn
+- https://github.com/raysan5/raylib

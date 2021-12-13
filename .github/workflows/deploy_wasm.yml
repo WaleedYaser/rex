@@ -1,6 +1,23 @@
-name: Deploy-WASM
+name: deploy-rex-wasm
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'rex-core/**'
+      - 'rex-raster/**'
+      - 'rex-viewer/**'
+      - '.github/workflows/deploy-rex-wasm.yml'
+      - 'CMakeLists.txt'
+  push:
+    branches: [ main ]
+    paths:
+      - 'rex-core/**'
+      - 'rex-raster/**'
+      - 'rex-viewer/**'
+      - '.github/workflows/deploy-rex-wasm.yml'
+      - 'CMakeLists.txt'
 
 jobs:
   build:
