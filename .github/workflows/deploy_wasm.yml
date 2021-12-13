@@ -1,4 +1,4 @@
-name: deploy-rex-wasm
+name: deploy-wasm
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
       - 'rex-core/**'
       - 'rex-raster/**'
       - 'rex-viewer/**'
-      - '.github/workflows/deploy-rex-wasm.yml'
+      - '.github/workflows/deploy-wasm.yml'
       - 'CMakeLists.txt'
   pull_request:
     branches: [ main ]
