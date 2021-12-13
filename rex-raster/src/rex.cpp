@@ -367,7 +367,7 @@ loop(Rex_Api* self)
                     if (depth > self->depth_buffer[y * canvas.width + x])
                     {
 #if STL
-                        Pixel color = color_palette[0];
+                        Pixel color = color_palette[3];
 #else
                         Pixel color = w0 * colors[i0] + w1 * colors[i1] + w2 * colors[i2];
 #endif
