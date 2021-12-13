@@ -46,5 +46,5 @@ jobs:
       with:
         source-directory: 'build/bin'
         destination-github-username: 'WaleedYaser'
-        destination-repo: 'rex-wasm'
+        destination-repository-name: 'rex-wasm'
         user-email: 'waleedyaser95@gmail.com'
