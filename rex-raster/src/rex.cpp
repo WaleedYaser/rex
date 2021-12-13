@@ -78,9 +78,15 @@ init(Rex_Api* self)
     }
 #endif
 
-    self->vertices = (Vec3*)cube_vertices;
-    self->normals = (Vec3*)cube_normals;
     self->vertices_count = cube_vertices_count;
+    self->vertices = rex_alloc_N(Vec3, self->vertices_count);
+    self->normals = rex_alloc_N(Vec3, self->vertices_count);
+
+    for (unsigned i = 0; i < self->vertices_count; ++i)
+    {
+        self->vertices[i] = cube_vertices[i];
+        self->normals[i] = cube_normals[i];
+    }
 
 #else
     auto gltf = gltf_load(self);
@@ -189,7 +195,7 @@ init(Rex_Api* self)
         for (unsigned int i = 0; i < self->vertices_count; ++i)
             self->vertices[i] -= ((bb_max + bb_min) * 0.5f);
 
-        self->camera_z = (bb_max - bb_min).z * 2.0f;
+        self->camera_z = (bb_max - bb_min).z * 5.0f;
     }
 }
 
