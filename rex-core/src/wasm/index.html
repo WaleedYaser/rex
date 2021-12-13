@@ -1,38 +1,21 @@
 <html>
     <head>
         <meta charset="utf-8">
+        <title>Rex</title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-        <style>
-            canvas.emscripten {
-                display:block;
-                border: 0px none;
-                background-color: #333333;
+        <style type="text/css">
+            body {
+                margin: 0;
             }
-
-            textarea.emscripten {
-                resize: none;
-                width: 600px;
-                height: 200px;
-                display:block;
-                border: 0px none;
-                padding: 8px;
-                background-color: #222222;
-                color: #ffffff;
-                margin: 0px;
-            }
-
-            .content {
-                border: 1px solid #333333;
-                display: inline-block;
+            canvas {
+                width: 100%;
+                height: 100%;
             }
         </style>
     </head>
 
     <body>
-        <div class="content">
-            <canvas class="emscripten" id="canvas" width="600", height="360" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
-            <textarea class="emscripten" id="output" rows="8"></textarea>
-        </div>
+        <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
 
         <script type='text/javascript'>
             var Module = {
