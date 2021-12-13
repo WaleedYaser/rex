@@ -55,14 +55,14 @@ target_link_libraries(rex-core PRIVATE
 	$<$<PLATFORM_ID:Linux>:xcb-image>
 )
 
-# target_compile_options(rex-core
+target_compile_options(rex-core
 # 	PRIVATE
 # 		$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>: -Werror -Weverything>
 # 		$<$<CXX_COMPILER_ID:GNU>: -Wall -Wextra>
 # 		$<$<CXX_COMPILER_ID:MSVC>: /WX>
-# 	PUBLIC
-# 		$<$<CXX_COMPILER_ID:MSVC>: /utf-8>
-# )
+	PUBLIC
+		$<$<CXX_COMPILER_ID:MSVC>: /utf-8>
+)
 
 target_compile_definitions(rex-core PUBLIC
 	$<$<PLATFORM_ID:Windows>:REX_OS_WINDOWS=1>
