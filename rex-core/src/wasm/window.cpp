@@ -12,26 +12,25 @@
 
 namespace rc
 {
-	SDL_Surface* g_screen;
-	i32 g_width;
-	i32 g_height;
+	EM_JS(int, get_canvas_width, (), { return canvas.width; });
+	EM_JS(int, get_canvas_height, (), { return canvas.height; });
 
 	Window *
 	window_init(const char *title, i32 width, i32 height, void* user_data, resize_callback_t resize_callback)
 	{
 		auto self = rex_alloc_zeroed_T(Window);
 
-		SDL_Init(SDL_INIT_VIDEO);
-		SDL_Surface *screen = SDL_SetVideoMode(width, height, 32, SDL_SWSURFACE);
+		// override width and height
+		width = get_canvas_width();
+		height = get_canvas_height();
 
-		g_screen = screen;
-		g_width = width;
-		g_height = height;
+		SDL_Init(SDL_INIT_VIDEO);
+		SDL_Window* window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_RESIZABLE);
 
 		self->title = title;
 		self->width = width;
 		self->height = height;
-		self->native_handle = screen;
+		self->native_handle = window;
 		self->user_data = user_data;
 		self->resize_callback = resize_callback;
 
@@ -44,27 +43,60 @@ namespace rc
 
 	}
 
-	void drawRandomPixels() {
-		if (SDL_MUSTLOCK(g_screen)) SDL_LockSurface(g_screen);
-
-		u8* pixels = (u8*)g_screen->pixels;
-
-		for (int i=0; i < g_width * g_height * 4; i++) {
-			char randomByte = rand() % 255;
-			pixels[i] = randomByte;
-		}
-
-		if (SDL_MUSTLOCK(g_screen)) SDL_UnlockSurface(g_screen);
-
-		SDL_Flip(g_screen);
-	}
-
 	bool
 	window_poll(Window* self)
 	{
-		// emscripten_set_main_loop(drawRandomPixels, 60, 1);
+		// TODO: workaround to handle resizing
+		int width = get_canvas_width();
+		int height = get_canvas_height();
 
-		return false;
+		if (self->width != width || self->height != height)
+		{
+			auto window = (SDL_Window*)self->native_handle;
+			SDL_SetWindowSize(window, width, height);
+
+			self->last_event.type = EVENT_TYPE_WINDOW_RESIZE;
+			self->last_event.window_resize.width = width;
+			self->last_event.window_resize.height = height;
+
+			self->width = width;
+			self->height = height;
+
+			if (self->resize_callback)
+				self->resize_callback(self, self->width, self->height);
+
+			return true;
+		}
+
+		SDL_Event event = {};
+		bool pending = SDL_PollEvent(&event);
+		if (pending == false)
+			return false;
+
+		switch (event.type)
+		{
+			case SDL_WINDOWEVENT:
+			{
+				if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+				{
+					// auto width = event.window.data1;
+					// auto height = event.window.data2;
+				}
+				break;
+			}
+			case SDL_QUIT:
+			{
+				self->last_event.type = EVENT_TYPE_WINDOW_CLOSE;
+				break;
+			}
+			default:
+			{
+				// do nothing
+				break;
+			}
+		}
+
+		return true;
 	}
 
 	void
@@ -76,17 +108,14 @@ namespace rc
 	void
 	window_blit(Window* self, Color_U8 *pixels, i32 width, i32 height)
 	{
-		auto screen = (SDL_Surface*)self->native_handle;
-
-		if (SDL_MUSTLOCK(screen)) SDL_LockSurface(screen);
+		auto window = (SDL_Window*)self->native_handle;
+		auto screen = SDL_GetWindowSurface(window);
 
 		auto screen_pixels = screen->pixels;
 		for (i32 i = 0; i < width * height * 4; ++i)
 			((u8*)screen->pixels)[i] = ((u8*)pixels)[i];
 
-		if (SDL_MUSTLOCK(screen)) SDL_UnlockSurface(screen);
-
-		SDL_Flip(screen);
+		SDL_UpdateWindowSurface(window);
 	}
 }
 

@@ -18,6 +18,14 @@
         <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
 
         <script type='text/javascript'>
+            var canvas = document.getElementById("canvas");
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            window.addEventListener('resize',()=>{
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+
             var Module = {
                 preRun: [],
                 postRun: [],

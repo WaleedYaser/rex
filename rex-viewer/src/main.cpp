@@ -14,7 +14,15 @@ rc::Window* g_window;
 void
 wasm_main_loop()
 {
-	// rex_log_info("wasm main loop");
+	while (rc::window_poll(g_window))
+	{
+		if (g_window->last_event.type == rc::EVENT_TYPE_WINDOW_CLOSE)
+		{
+			emscripten_cancel_main_loop();
+			break;
+		}
+	}
+
 	auto rex = (Rex_Api*)g_window->user_data;
 	rex->dt = 33 * 0.001f;
 	g_window->resize_callback(g_window, g_window->width, g_window->height);
