@@ -80,7 +80,7 @@ init(Rex_Api* self)
 
     self->vertices = (Vec3*)cube_vertices;
     self->normals = (Vec3*)cube_normals;
-    self->vertices_count = cube_vertices_count;
+    self->vertices_count = cube_vertices_count / 2;
 
 #else
     auto gltf = gltf_load(self);
