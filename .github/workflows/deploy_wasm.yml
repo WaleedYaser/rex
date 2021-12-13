@@ -48,3 +48,4 @@ jobs:
         destination-github-username: 'WaleedYaser'
         destination-repository-name: 'rex-wasm'
         user-email: 'waleedyaser95@gmail.com'
+        target-branch: 'main'
