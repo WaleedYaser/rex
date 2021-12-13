@@ -80,7 +80,7 @@ init(Rex_Api* self)
 
     self->vertices = (Vec3*)cube_vertices;
     self->normals = (Vec3*)cube_normals;
-    self->vertices_count = cube_vertices_count / 2;
+    self->vertices_count = cube_vertices_count;
 
 #else
     auto gltf = gltf_load(self);
@@ -367,7 +367,7 @@ loop(Rex_Api* self)
                     if (depth > self->depth_buffer[y * canvas.width + x])
                     {
 #if STL
-                        Pixel color = color_palette[2];
+                        Pixel color = color_palette[3];
 #else
                         Pixel color = w0 * colors[i0] + w1 * colors[i1] + w2 * colors[i2];
 #endif
