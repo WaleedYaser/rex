@@ -40,11 +40,11 @@ jobs:
       run: cmake --build build --target rex-viewer rex-deploy-index -j
 
     - name: Deploy
-      uses: dmnemec/copy_file_to_another_repo_action@main
+      uses: cpina/github-action-push-to-another-repository@v1.3
       env:
         API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
       with:
-        source_file: 'build/bin/'
-        destination_repo: 'WaleedYaser/rex-wasm'
-        user_email: 'waleedyaser95@gmail.com'
-        user_name: 'WaleedYaser'
+        source-directory: 'build/bin'
+        destination-github-username: 'WaleedYaser'
+        destination-repo: 'rex-wasm'
+        user-email: 'waleedyaser95@gmail.com'
