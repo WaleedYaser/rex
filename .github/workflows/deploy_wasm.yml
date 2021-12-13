@@ -44,7 +44,7 @@ jobs:
       env:
         API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
       with:
-        source_file: 'build/bin/*'
+        source_file: build/bin/**
         destination_repo: 'WaleedYaser/rex-wasm'
         user_email: 'waleedyaser95@gmail.com'
         user_name: 'WaleedYaser'
