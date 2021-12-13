@@ -3,10 +3,16 @@ name: unit-tests
 on:
   push:
     branches: [ main ]
-    paths-ignore: '**.md'
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/deploy_wasm.yml'
+      - '.github/workflows/pack.yml'
   pull_request:
     branches: [ main ]
-    paths-ignore: '**.md'
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/deploy_wasm.yml'
+      - '.github/workflows/pack.yml'
 
 jobs:
   build:
