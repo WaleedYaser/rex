@@ -10,7 +10,7 @@ on:
       - 'rex-viewer/**'
       - '.github/workflows/deploy-rex-wasm.yml'
       - 'CMakeLists.txt'
-  push:
+  pull_request:
     branches: [ main ]
     paths:
       - 'rex-core/**'
