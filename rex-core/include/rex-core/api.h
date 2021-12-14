@@ -5,7 +5,12 @@
 
 typedef union Rex_Pixel
 {
+// TODO: handle pixel format in a better in better way
+#if REX_OS_WASM
+	struct { uint8_t r, g, b, a; };
+#else
 	struct { uint8_t b, g, r, a; };
+#endif
 	uint32_t raw;
 } Rex_Pixel;
 
