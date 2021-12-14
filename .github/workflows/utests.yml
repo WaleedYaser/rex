@@ -39,6 +39,10 @@ jobs:
           sudo apt update
           sudo apt install -y libxcb1-dev libxcb-util-dev libxcb-keysyms1-dev libxcb-image0-dev
 
+    - name: Configure CMake
+      if: matrix.build-variant != 'WASM'
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build-variant }}
+
     - name: Build
       if: matrix.build-variant != 'WASM'
       run: cmake --build build --config ${{ matrix.build-variant }} -j
@@ -49,6 +53,13 @@ jobs:
       run: ctest -C ${{ matrix.build-variant }}
 
       # web assembly test
+
+    - name: Setup emsdk
+      if: matrix.build-variant == 'WASM'
+      uses: mymindstorm/setup-emsdk@v11
+      with:
+        version: 3.0.0
+        actions-cache-folder: 'emsdk-cache'
 
     - name: Configure CMake
       if: matrix.build-variant == 'WASM'
