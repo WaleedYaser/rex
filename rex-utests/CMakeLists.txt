@@ -9,6 +9,14 @@ add_executable(rex-utests
 
 target_link_libraries(rex-utests PRIVATE rex-core)
 
+if (EMSCRIPTEN)
+	set_target_properties(rex-utests
+		PROPERTIES
+		LINK_FLAGS
+		"-o2 -s ALLOW_MEMORY_GROWTH=1"
+	)
+endif()
+
 # target_compile_options(rex-utests PRIVATE
 # 	$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>: -Werror -Weverything>
 # 	$<$<CXX_COMPILER_ID:GNU>: -Wall -Wextra>

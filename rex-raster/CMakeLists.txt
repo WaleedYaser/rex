@@ -13,6 +13,7 @@ target_sources(rex-raster PRIVATE
 	"include/rex-raster/constants.h"
 	"include/rex-raster/geometry.h"
 	"include/rex-raster/gltf.h"
+	"include/rex-raster/rex.h"
 	"include/rex-raster/stb_image.h"
 	"src/rex.cpp"
 )
