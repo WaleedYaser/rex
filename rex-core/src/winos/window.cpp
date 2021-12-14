@@ -282,7 +282,7 @@ namespace rc
 	}
 
 	void
-	window_blit(Window *window, Color_U8 *pixels, i32 width, i32 height)
+	window_blit(Window* window, uint32_t* pixels, i32 width, i32 height)
 	{
 		HWND hwnd = (HWND)window->native_handle;
 
@@ -297,20 +297,11 @@ namespace rc
 		bitmap_info.bmiHeader.biBitCount = 32;
 		bitmap_info.bmiHeader.biCompression = BI_RGB;
 
-		auto bgra = rex_alloc_N_from(frame_allocator(), Color_U8, width * height);
-		for (i32 i = 0; i < width * height; ++i)
-		{
-			bgra[i].b = pixels[i].r;
-			bgra[i].g = pixels[i].g;
-			bgra[i].r = pixels[i].b;
-			bgra[i].a = pixels[i].a;
-		}
-
 		auto copied_scan_lines = ::StretchDIBits(
 			hdc,
 			0, 0, window->width, window->height, // destination
 			0, 0, width, height, // source
-			bgra,
+			pixels,
 			&bitmap_info,
 			DIB_RGB_COLORS,
 			SRCCOPY);

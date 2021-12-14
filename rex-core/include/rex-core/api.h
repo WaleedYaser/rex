@@ -1,46 +1,20 @@
 #pragma once
 
 #include "rex-core/exports.h"
+#include <stdint.h>
 
-#include <stdbool.h>
-
-// TODO: cleanup
-
-typedef struct Pixel
+typedef union Rex_Pixel
 {
-	float r, g, b, a;
-} Pixel;
-
-typedef struct Image
-{
-	int width, height;
-	Pixel* pixels;
-} Image;
-
-struct Vec2;
-struct Vec3;
+	struct { uint8_t b, g, r, a; };
+	uint32_t raw;
+} Rex_Pixel;
 
 typedef struct Rex_Api
 {
-	// owned values
-	Image canvas;
-	float* depth_buffer;
-	Image image;
-
-	unsigned int vertices_count;
-	Vec3* vertices;
-	Vec3* normals;
-	Vec2* uvs;
-
-	unsigned int indices_count;
-	unsigned int* indices;
-
-	float camera_z;
-
-	// values set from client
-	bool quit;
-	int window_width, window_height;
+	Rex_Pixel* screen;
+	int32_t screen_width, screen_height;
 	float dt;
+	bool quit;
 
 	void (*init)(Rex_Api* self);
 	void (*deinit)(Rex_Api* self);

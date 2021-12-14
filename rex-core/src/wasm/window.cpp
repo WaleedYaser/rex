@@ -81,7 +81,7 @@ namespace rc
 	}
 
 	void
-	window_blit(Window* self, Color_U8 *pixels, i32 width, i32 height)
+	window_blit(Window* self, u32* pixels, i32 width, i32 height)
 	{
 		// source: https://stackoverflow.com/a/50832655
 		EM_ASM_({
@@ -90,7 +90,7 @@ namespace rc
 			let imageData = context.getImageData(0, 0, $1, $2);
 			imageData.data.set(data);
 			context.putImageData(imageData, 0, 0);
-		}, (u32*)pixels, width, height);
+		}, pixels, width, height);
 	}
 }
 

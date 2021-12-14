@@ -3,6 +3,8 @@
 #include "rex-core/exports.h"
 #include "rex-core/types.h"
 
+#include <stdint.h>
+
 namespace rc
 {
 	enum MOUSE_BUTTON
@@ -125,5 +127,5 @@ namespace rc
 	REX_CORE_EXPORT void window_deinit(Window* self);
 	REX_CORE_EXPORT bool window_poll(Window* self);
 	REX_CORE_EXPORT void window_title_set(Window* self, const char* title);
-	REX_CORE_EXPORT void window_blit(Window* self, Color_U8 *pixels, i32 width, i32 height);
+	REX_CORE_EXPORT void window_blit(Window* self, uint32_t* pixels, i32 width, i32 height);
 }

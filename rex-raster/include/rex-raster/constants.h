@@ -1,6 +1,6 @@
 #pragma once
 
-#include <rex-core/api.h>
+#include "rex-raster/rex.h"
 #include "rex-raster/geometry.h"
 
 // colors

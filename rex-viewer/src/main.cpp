@@ -53,20 +53,16 @@ int main()
 	rex->init(rex);
 
 	auto window = rc::window_init("Rex", 1280, 720, rex,
-		[](rc::Window* window, rc::i32 width, rc::i32 height) {
+		[](rc::Window* window, int32_t width, int32_t height) {
 			auto rex = (Rex_Api*)window->user_data;
-			rex->window_width = width;
-			rex->window_height = height;
+			rex->screen_width = width;
+			rex->screen_height = height;
+
+			rex_dealloc(rex->screen);
+			rex->screen = rex_alloc_N(Rex_Pixel, width * height);
+
 			rex->loop(rex);
-			auto pixels = rex_alloc_N_from(rc::frame_allocator(), rc::Color_U8, rex->canvas.width * rex->canvas.height);
-			for (rc::i32 i = 0; i < rex->canvas.width * rex->canvas.height; ++i)
-			{
-				pixels[i].r = (rc::u8)(rex->canvas.pixels[i].r * 255);
-				pixels[i].g = (rc::u8)(rex->canvas.pixels[i].g * 255);
-				pixels[i].b = (rc::u8)(rex->canvas.pixels[i].b * 255);
-				pixels[i].a = (rc::u8)(rex->canvas.pixels[i].a * 255);
-			}
-			rc::window_blit(window, pixels, rex->canvas.width, rex->canvas.height);
+			rc::window_blit(window, (uint32_t*)rex->screen, rex->screen_width, rex->screen_height);
 	});
 
 	// init timing

@@ -357,7 +357,7 @@ namespace rc
 	}
 
 	void
-	window_blit(Window* window, Color_U8 *pixels, i32 width, i32 height)
+	window_blit(Window* window, uint32_t* pixels, i32 width, i32 height)
 	{
 		auto self = (IWindow *)window;
 
@@ -370,15 +370,6 @@ namespace rc
 			width, height
 		);
 
-		auto bgra = rex_alloc_N_from(frame_allocator(), Color_U8, width * height);
-		for (i32 i = 0; i < width * height; ++i)
-		{
-			bgra[i].b = pixels[i].r;
-			bgra[i].g = pixels[i].g;
-			bgra[i].r = pixels[i].b;
-			bgra[i].a = pixels[i].a;
-		}
-
 		auto graphics_ctx = xcb_generate_id(self->connection);
 		xcb_create_gc(self->connection, graphics_ctx, pixmap, 0, nullptr);
 		auto image = xcb_image_create_native(
@@ -386,9 +377,9 @@ namespace rc
 			width, height,
 			XCB_IMAGE_FORMAT_Z_PIXMAP,
 			self->screen->root_depth,
-			bgra,
+			pixels,
 			width * height * sizeof(Color_U8),
-			(uint8_t*)bgra
+			(uint8_t*)pixels
 		);
 		xcb_image_put(self->connection, pixmap, graphics_ctx, image, 0, 0, 0);
 
