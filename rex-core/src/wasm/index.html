@@ -1,13 +1,13 @@
+<!DOCTYPE html>
+
 <html>
     <head>
         <meta charset="utf-8">
         <title>Rex</title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
         <style type="text/css">
-            body {
+            html, body, canvas {
                 margin: 0;
-            }
-            canvas {
                 width: 100%;
                 height: 100%;
             }
@@ -18,14 +18,6 @@
         <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
 
         <script type='text/javascript'>
-            var canvas = document.getElementById("canvas");
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            window.addEventListener('resize',()=>{
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            });
-
             var Module = {
                 preRun: [],
                 postRun: [],

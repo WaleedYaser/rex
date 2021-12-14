@@ -13,7 +13,7 @@ if (EMSCRIPTEN)
 	set_target_properties(rex-viewer
 		PROPERTIES
 		LINK_FLAGS
-		"-o2 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1"
+		"-o2 -s ALLOW_MEMORY_GROWTH=1"
 	)
 endif()
 

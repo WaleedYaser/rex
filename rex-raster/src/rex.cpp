@@ -384,7 +384,7 @@ loop(Rex_Api* self)
                         Pixel color = self->image.pixels[idx];
 #endif
 
-#define LIGHT 1
+#define LIGHT 0
 #if LIGHT
                         Pixel light_color = Pixel{1.0f, 1.0f, 1.0f, 1.0f} * 1.0f;
                         Vec3 light_pos = {};
