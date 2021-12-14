@@ -90,7 +90,6 @@ namespace rc
 			let imageData = context.getImageData(0, 0, $1, $2);
 			imageData.data.set(data);
 			context.putImageData(imageData, 0, 0);
-			console.log($1, $2);
 		}, (u32*)pixels, width, height);
 	}
 }

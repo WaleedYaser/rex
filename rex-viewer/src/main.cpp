@@ -7,28 +7,42 @@
 #include <rex-core/log.h>
 
 #if REX_OS_WASM
-# include <emscripten.h>
+# include <emscripten/emscripten.h>
+# include <emscripten/html5.h>
+#endif
 
-rc::Window* g_window;
-
-void
-wasm_main_loop()
+inline static int
+_rex_frame(double, void* user_data)
 {
-	while (rc::window_poll(g_window))
+	auto window = (rc::Window*)user_data;
+
+	auto rex = load_rex_api();
+	window->user_data = rex;
+
+	while (rc::window_poll(window))
 	{
-		if (g_window->last_event.type == rc::EVENT_TYPE_WINDOW_CLOSE)
-		{
-			emscripten_cancel_main_loop();
-			break;
-		}
+		if (window->last_event.type == rc::EVENT_TYPE_WINDOW_CLOSE)
+			return false;
 	}
 
-	auto rex = (Rex_Api*)g_window->user_data;
-	rex->dt = 33 * 0.001f;
-	g_window->resize_callback(g_window, g_window->width, g_window->height);
+	auto busy_ms = rc::time_milliseconds();
+	if (busy_ms < 33)
+		rc::sleep((rc::u32)(33 - busy_ms));
+
+	auto free_ms = rc::time_milliseconds();
+	auto frame_ms = busy_ms + free_ms;
+
+	auto title = rc::str_fmt(rc::frame_allocator(), "Rex v%d.%d.%d [frame: %lldms, busy: %lldms, free: %lldms]",
+		REX_VERSION_MAJOR, REX_VERSION_MINOR, REX_VERSION_PATCH, frame_ms, busy_ms, free_ms);
+	rc::window_title_set(window, title.ptr);
+
+	// rex loop
+	rex->dt = frame_ms * 0.001f;
+	window->resize_callback(window, window->width, window->height);
 	rc::frame_allocator()->clear();
+
+	return true;
 }
-#endif
 
 int main()
 {
@@ -55,44 +69,13 @@ int main()
 			rc::window_blit(window, pixels, rex->canvas.width, rex->canvas.height);
 	});
 
-#if REX_OS_WASM
-	g_window = window;
-	emscripten_set_main_loop(wasm_main_loop, 0, 1);
-#else
 	// init timing
 	rc::time_milliseconds();
 
-	bool running = true;
-	while (running)
-	{
-		rex = load_rex_api();
-		window->user_data = rex;
-
-		while (rc::window_poll(window))
-		{
-			if (window->last_event.type == rc::EVENT_TYPE_WINDOW_CLOSE)
-			{
-				running = false;
-				break;
-			}
-		}
-
-		auto busy_ms = rc::time_milliseconds();
-		if (busy_ms < 33)
-			rc::sleep((rc::u32)(33 - busy_ms));
-
-		auto free_ms = rc::time_milliseconds();
-		auto frame_ms = busy_ms + free_ms;
-
-		auto title = rc::str_fmt(rc::frame_allocator(), "Rex v%d.%d.%d [frame: %dms, busy: %dms, free: %dms]",
-			REX_VERSION_MAJOR, REX_VERSION_MINOR, REX_VERSION_PATCH, frame_ms, busy_ms, free_ms);
-		rc::window_title_set(window, title.ptr);
-
-		// rex loop
-		rex->dt = frame_ms * 0.001f;
-		window->resize_callback(window, window->width, window->height);
-		rc::frame_allocator()->clear();
-	}
+#if REX_OS_WASM
+	emscripten_request_animation_frame_loop(_rex_frame, window);
+#else
+	while (_rex_frame(0, window));
 #endif
 
 	// free resources
