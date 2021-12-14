@@ -4,7 +4,7 @@
 [![](http://github-actions.40ants.com/WaleedYaser/rex/matrix.svg?only=unit-tests.build-desktop.windows-latest)](https://github.com/WaleedYaser/rex)
 [![](https://img.shields.io/badge/OS-ubuntu--latest-blue)](https://github.com/WaleedYaser/rex)
 [![](http://github-actions.40ants.com/WaleedYaser/rex/matrix.svg?only=unit-tests.build-desktop.ubuntu-latest)](https://github.com/WaleedYaser/rex)
-[![](https://img.shields.io/badge/OS-Webt-blue)](https://github.com/WaleedYaser/rex)
+[![](https://img.shields.io/badge/OS-Web-blue)](https://github.com/WaleedYaser/rex)
 [![](http://github-actions.40ants.com/WaleedYaser/rex/matrix.svg?only=unit-tests.build-web)](https://github.com/WaleedYaser/rex)
 
 [![unit-tests](https://github.com/WaleedYaser/rex/actions/workflows/utests.yml/badge.svg)](https://github.com/WaleedYaser/rex/actions/workflows/utests.yml)
