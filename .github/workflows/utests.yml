@@ -15,65 +15,57 @@ on:
       - '.github/workflows/pack.yml'
 
 jobs:
-  build:
+  build-desktop:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest]
-        build-variant: [Debug, Release, WASM]
-        exclude:
-          - os: windows-latest
-            build-variant: WASM
+        build-variant: [Debug, Release]
 
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: true
 
-    # windows/ubuntu test
-
-    - name: Install dependencies
-      if: matrix.build-variant != 'WASM' && matrix.os == 'ubuntu-latest'
+    - name: Install linux dependencies
+      if: matrix.os == 'ubuntu-latest'
       run: |
           sudo apt update
           sudo apt install -y libxcb1-dev libxcb-util-dev libxcb-keysyms1-dev libxcb-image0-dev
 
     - name: Configure CMake
-      if: matrix.build-variant != 'WASM'
       run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build-variant }}
 
     - name: Build
-      if: matrix.build-variant != 'WASM'
       run: cmake --build build --config ${{ matrix.build-variant }} -j
 
     - name: Test
-      if: matrix.build-variant != 'WASM'
       working-directory: build
       run: ctest -C ${{ matrix.build-variant }}
 
-      # web assembly test
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
 
     - name: Setup emsdk
-      if: matrix.build-variant == 'WASM'
       uses: mymindstorm/setup-emsdk@v11
       with:
         version: 3.0.0
         actions-cache-folder: 'emsdk-cache'
 
     - name: Configure CMake
-      if: matrix.build-variant == 'WASM'
       run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
 
     - name: Build
-      if: matrix.build-variant == 'WASM'
       run: cmake --build build  -j
 
     - uses: actions/setup-node@v2
-      if: matrix.build-variant == 'WASM'
       with:
         node-version: '14'
 
     - name: Test
-      if: matrix.build-variant == 'WASM'
       run: node build/bin/rex-utests.js
