@@ -5,11 +5,29 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
 option(REX_HOT_RELOAD OFF)
+
+# common options
+add_library(rex-options INTERFACE)
+target_compile_features(rex-options INTERFACE cxx_std_17)
+set_target_properties(rex-options PROPERTIES CXX_EXTENSIONS OFF)
+
+# TODO: warnings doesn't work with WASM
+if (NOT EMSCRIPTEN)
+	target_compile_options(rex-options INTERFACE
+		$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>: -Werror -Weverything>
+		$<$<CXX_COMPILER_ID:GNU>: -Wall -Wextra>
+		$<$<CXX_COMPILER_ID:MSVC>: /WX>
+	)
+endif()
+
+if (EMSCRIPTEN)
+	set_target_properties(rex-options PROPERTIES LINK_FLAGS "-o2 -s ALLOW_MEMORY_GROWTH=1")
+endif()
+
+if (REX_HOT_RELOAD)
+	target_compile_definitions(rex-options INTERFACE -DREX_HOT_RELOAD=1)
+endif()
 
 add_subdirectory(rex-core)
 add_subdirectory(rex-raster)
@@ -19,30 +37,31 @@ include(CTest)
 add_subdirectory(rex-utests)
 add_subdirectory(rex-scratch)
 
-get_target_property(REX_CORE_DIR rex-core SOURCE_DIR)
-configure_file(${REX_CORE_DIR}/include/rex-core/version.h.in ${REX_CORE_DIR}/include/rex-core/version.h)
-
 add_custom_target(rex-deploy-data ALL
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data/ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/data/
 	COMMENT "[rex-deploy]: deploy rex data."
 )
 
 if (EMSCRIPTEN)
-	add_custom_target(rex-deploy-index ALL
-		COMMAND ${CMAKE_COMMAND} -E copy ${REX_CORE_DIR}/src/wasm/index.html ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html
+	add_custom_target(rex-deploy-html ALL
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/rex-core/src/wasm/index.html ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html
 		COMMENT "[rex-deploy]: deploy rex index.html."
 	)
 
-	install(FILES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html DESTINATION ".")
-endif()
-
-if (REX_HOT_RELOAD)
+	install(
+		FILES
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/rex-viewer.wasm
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/rex-viewer.js
+			${CMAKE_SOURCE_DIR}/LICENSE
+		DESTINATION ".")
+elseif(REX_HOT_RELOAD)
 	install(TARGETS rex-viewer rex-raster RUNTIME DESTINATION ".")
 else()
 	install(TARGETS rex-viewer RUNTIME DESTINATION ".")
 endif()
-install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/data DESTINATION ".")
 
+install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/data DESTINATION ".")
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

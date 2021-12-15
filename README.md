@@ -48,6 +48,13 @@ Rex is a side project I'm working on now for the purpose of learning more about 
 	```
 	You should have `rex-VERSION-win64.zip` file in the build directory.
 
+## Setup emscripten for windows (TODO)
+```
+emsdk activate mingw-4.6.2-32bit
+
+cmake -G "MinGW Makefiles" -B build-wasm -DCMAKE_TOOLCHAIN_FILE=D:/code/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+```
+
 ## External
 - https://github.com/doctest/doctest
 - https://github.com/nothings/stb
