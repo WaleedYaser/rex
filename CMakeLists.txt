@@ -12,6 +12,16 @@ add_library(rex-options INTERFACE)
 target_compile_features(rex-options INTERFACE cxx_std_17)
 set_target_properties(rex-options PROPERTIES CXX_EXTENSIONS OFF)
 
+target_compile_definitions(rex-options INTERFACE
+	$<$<PLATFORM_ID:Windows>:REX_OS_WINDOWS=1>
+	$<$<PLATFORM_ID:Linux>:REX_OS_LINUX=1>
+	$<$<PLATFORM_ID:Emscripten>:REX_OS_WASM=1>
+	$<$<CXX_COMPILER_ID:MSVC>:REX_COMPILER_MSVC=1>
+	$<$<CXX_COMPILER_ID:GNU>:REX_COMPILER_GNU=1>
+	$<$<CXX_COMPILER_ID:Clang>:REX_COMPILER_CLANG=1>
+	$<$<CXX_COMPILER_ID:AppleClang>:REX_COMPILER_CLANG=1>
+)
+
 # TODO: warnings doesn't work with WASM
 if (NOT EMSCRIPTEN)
 	target_compile_options(rex-options INTERFACE
@@ -30,6 +40,7 @@ if (REX_HOT_RELOAD)
 endif()
 
 add_subdirectory(rex-core)
+add_subdirectory(rex-math)
 add_subdirectory(rex-raster)
 add_subdirectory(rex-viewer)
 
