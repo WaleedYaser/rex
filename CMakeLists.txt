@@ -22,7 +22,7 @@ if (NOT EMSCRIPTEN)
 endif()
 
 if (EMSCRIPTEN)
-	set_target_properties(rex-options PROPERTIES LINK_FLAGS "-o2 -s ALLOW_MEMORY_GROWTH=1")
+	target_link_options(rex-options INTERFACE "SHELL:-o2" "SHELL: -s ALLOW_MEMORY_GROWTH=1")
 endif()
 
 if (REX_HOT_RELOAD)
