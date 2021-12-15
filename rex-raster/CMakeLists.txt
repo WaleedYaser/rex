@@ -15,6 +15,7 @@ target_sources(rex-raster PRIVATE
 	"include/rex-raster/rex.h"
 	"include/rex-raster/stb_image.h"
 	"src/rex.cpp"
+	"src/stb_image.cpp"
 )
 
 target_link_libraries(rex-raster PRIVATE rex-options rex-core)

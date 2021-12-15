@@ -60,13 +60,3 @@ target_link_libraries(rex-core PRIVATE
 )
 
 target_compile_options(rex-core PUBLIC $<$<CXX_COMPILER_ID:MSVC>: /utf-8>)
-
-target_compile_definitions(rex-core PUBLIC
-	$<$<PLATFORM_ID:Windows>:REX_OS_WINDOWS=1>
-	$<$<PLATFORM_ID:Linux>:REX_OS_LINUX=1>
-	$<$<PLATFORM_ID:Emscripten>:REX_OS_WASM=1>
-	$<$<CXX_COMPILER_ID:MSVC>:REX_COMPILER_MSVC=1>
-	$<$<CXX_COMPILER_ID:GNU>:REX_COMPILER_GNU=1>
-	$<$<CXX_COMPILER_ID:Clang>:REX_COMPILER_CLANG=1>
-	$<$<CXX_COMPILER_ID:AppleClang>:REX_COMPILER_CLANG=1>
-)

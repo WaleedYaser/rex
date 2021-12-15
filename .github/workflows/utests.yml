@@ -5,13 +5,11 @@ on:
     branches: [ main ]
     paths-ignore:
       - '**.md'
-      - '.github/workflows/deploy_wasm.yml'
       - '.github/workflows/pack.yml'
   pull_request:
     branches: [ main ]
     paths-ignore:
       - '**.md'
-      - '.github/workflows/deploy_wasm.yml'
       - '.github/workflows/pack.yml'
 
 jobs:
@@ -74,6 +72,7 @@ jobs:
       run: cmake --install build --prefix rex-wasm
 
     - name: Deploy
+      if: github.ref == 'ref/head/main'
       uses: cpina/github-action-push-to-another-repository@v1.3
       env:
         API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
