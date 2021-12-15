@@ -8,6 +8,7 @@ add_executable(rex-utests
 	"src/utests_math_types.cpp"
 	"src/utests_math_vec2.cpp"
 	"src/utests_math_vec3.cpp"
+	"src/utests_math_vec4.cpp"
 )
 
 target_link_libraries(rex-utests PRIVATE rex-options rex-core rex-math)

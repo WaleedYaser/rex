@@ -10,7 +10,6 @@ option(REX_HOT_RELOAD OFF)
 # common options
 add_library(rex-options INTERFACE)
 target_compile_features(rex-options INTERFACE cxx_std_17)
-set_target_properties(rex-options PROPERTIES CXX_EXTENSIONS OFF)
 
 target_compile_definitions(rex-options INTERFACE
 	$<$<PLATFORM_ID:Windows>:REX_OS_WINDOWS=1>
