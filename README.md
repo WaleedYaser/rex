@@ -8,7 +8,6 @@
 [![](http://github-actions.40ants.com/WaleedYaser/rex/matrix.svg?only=unit-tests.build-web)](https://github.com/WaleedYaser/rex)
 
 [![unit-tests](https://github.com/WaleedYaser/rex/actions/workflows/utests.yml/badge.svg)](https://github.com/WaleedYaser/rex/actions/workflows/utests.yml)
-[![deploy-wasm](https://github.com/WaleedYaser/rex/actions/workflows/deploy_wasm.yml/badge.svg)](https://github.com/WaleedYaser/rex/actions/workflows/deploy_wasm.yml)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/WaleedYaser/rex.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/WaleedYaser/rex/alerts/)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/WaleedYaser/rex.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/WaleedYaser/rex/context:cpp)
 
