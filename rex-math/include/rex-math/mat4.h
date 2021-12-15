@@ -443,7 +443,7 @@ namespace rex::math
 	// TODO[Waleed]: add unittests
 	template <typename T>
 	inline static Mat4<T>
-	mat4_prespective(T fovy, T aspect, T znear, T zfar)
+	mat4_perspective(T fovy, T aspect, T znear, T zfar)
 	{
 		Mat4<T> M{};
 
@@ -462,6 +462,16 @@ namespace rex::math
 
 		return M;
 	}
+
+	// TODO: add unittets
+	template <typename T>
+	inline static Mat4<T>
+	mat4_viewport(T width, T height)
+	{
+		// TODO:
+		return mat4_identity<T>();
+	}
+
 
 	template <typename T>
 	inline static Mat4<T>

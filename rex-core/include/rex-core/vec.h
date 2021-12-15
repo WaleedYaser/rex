@@ -135,6 +135,16 @@ namespace rc
 		rex_dealloc_from(self.allocator, old_ptr);
 	}
 
+	// TODO: add unittest
+	template <typename T>
+	inline static void
+	vec_resize(Vec<T>& self, sz count)
+	{
+		if (count > self.capacity)
+			vec_reserve(self, count - self.capacity);
+		self.count = count;
+	}
+
 	template <typename T, typename R>
 	inline static void
 	vec_fill(Vec<T>& self, const R& value)

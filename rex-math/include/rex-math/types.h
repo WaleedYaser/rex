@@ -56,12 +56,13 @@ namespace rex::math
 		struct { Vec3<T> rgb; T _pad2; };
 		struct { T _pad3; Vec3<T> gba; };
 
-		// struct { V2<T> xy; V2<T> zw[2]; };
-		// struct { T _pad4; V2<T> yz; T _pad5; };
+		// TODO: add unittests
+		struct { Vec2<T> xy; Vec2<T> zw; };
+		struct { T _pad4; Vec2<T> yz; T _pad5; };
 
-		// struct { V2<T> rg; T _pad7[2]; };
-		// struct { T _pad8; V2<T> gb; T _pad9; };
-		// struct { T _pad10[2]; V2<T> ba; };
+		struct { Vec2<T> rg; T _pad7[2]; };
+		struct { T _pad8; Vec2<T> gb; T _pad9; };
+		struct { T _pad10[2]; Vec2<T> ba; };
 
 		T values[4];
 
@@ -117,10 +118,12 @@ namespace rex::math
 	using Color_F32 = Vec4<float>;    // normalized color
 
 	using M2 = Mat2<float>;
+	// TODO: add unitests
 	using M3 = Mat3<float>;
 	using M4 = Mat4<float>;
 
 	using M2d = Mat2<double>;
+	// TODO: add unitests
 	using M3d = Mat3<double>;
 	using M4d = Mat4<double>;
 

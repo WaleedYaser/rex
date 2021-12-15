@@ -85,6 +85,23 @@ namespace rex::math
 		return v * (1.0f / f);
 	}
 
+	// TODO: add unittest
+	template <typename T>
+	inline static Vec4<T>
+	operator*(const Vec4<T> a, const Vec4<T> &b)
+	{
+		return {a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w};
+	}
+
+	// TODO: add unittest
+	template <typename T>
+	inline static Vec4<T> &
+	operator*=(Vec4<T> &a, const Vec4<T> b)
+	{
+		a = a * b;
+		return a;
+	}
+
 	template <typename T>
 	inline static Vec4<T> &
 	operator/=(Vec4<T> &v, T f)

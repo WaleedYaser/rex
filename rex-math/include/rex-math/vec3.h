@@ -131,4 +131,28 @@ namespace rex::math
 			a.x * b.y - a.y * b.x
 		};
 	}
+
+	// TODO: add unittest
+	template <typename T>
+	inline static Vec3<T>
+	min(const Vec3<T> &a, const Vec3<T> &b)
+	{
+		return {
+			a.x < b.x ? a.x : b.x,
+			a.y < b.y ? a.y : b.y,
+			a.z < b.z ? a.z : b.z
+		};
+	}
+
+	// TODO: add unittest
+	template <typename T>
+	inline static Vec3<T>
+	max(const Vec3<T> &a, const Vec3<T> &b)
+	{
+		return {
+			a.x > b.x ? a.x : b.x,
+			a.y > b.y ? a.y : b.y,
+			a.z > b.z ? a.z : b.z
+		};
+	}
 }
