@@ -2,7 +2,7 @@
 
 #include "doctest.h"
 
-TEST_CASE("[nova-math]: Vec2")
+TEST_CASE("[rex-math]: Vec2")
 {
 	SUBCASE("init")
 	{
