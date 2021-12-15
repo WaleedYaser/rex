@@ -96,7 +96,7 @@ namespace rex::math
 		inline const Vec4<T> &operator[](int index) const { return rows[index]; }
 	};
 
-	// alias common vector types
+	// alias common types
 	using V2 = Vec2<float>;
 	using V3 = Vec3<float>;
 	using V4 = Vec4<float>;
@@ -113,9 +113,16 @@ namespace rex::math
 	using V3i = Vec3<int32_t>;
 	using V4i = Vec4<int32_t>;
 
-	// colors
 	using Color_U8  = Vec4<uint8_t>;  // 8-bit color
 	using Color_F32 = Vec4<float>;    // normalized color
+
+	using M2 = Mat2<float>;
+	using M3 = Mat3<float>;
+	using M4 = Mat4<float>;
+
+	using M2d = Mat2<double>;
+	using M3d = Mat3<double>;
+	using M4d = Mat4<double>;
 
 	static_assert(sizeof(V2) == 8);
 	static_assert(sizeof(V3) == 12);

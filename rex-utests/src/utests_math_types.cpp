@@ -9,7 +9,7 @@ TEST_CASE("[rex-math]: types")
 		rex::math::Vec2<int> v = {};
 		CHECK((v.x == 0 && v.y == 0));
 
-		v = {{1, 2}};
+		v = {1, 2};
 		CHECK((v.x == v.u && v.u == v.r && v.r == v.width && v.width == 1));
 		CHECK((v.y == v.v && v.v == v.g && v.g == v.height && v.height == 2));
 
@@ -24,7 +24,7 @@ TEST_CASE("[rex-math]: types")
 		rex::math::Vec3<float> v = {};
 		CHECK((v.x == 0 && v.y == 0 && v.z == 0));
 
-		v = {{1, 2, 3}};
+		v = {1, 2, 3};
 		CHECK((v.x == v.u && v.u == v.r && v.r == v.width && v.width == 1));
 		CHECK((v.y == v.v && v.v == v.g && v.g == v.height && v.height == 2));
 		CHECK((v.z == v.w && v.w == v.b && v.b == v.depth && v.depth == 3));
@@ -35,7 +35,7 @@ TEST_CASE("[rex-math]: types")
 		CHECK((xy.x == uv.u && uv.u == rg.r && rg.r == 1));
 		CHECK((xy.y == uv.v && uv.v == rg.g && rg.g == 2));
 
-		const rex::math::Vec3<float> v1 = {{4, 5, 6}};
+		const rex::math::Vec3<float> v1 = {4, 5, 6};
 		v[0] = 7;
 		v[1] = v1[1];
 		v[2] = v1[2];
@@ -47,7 +47,7 @@ TEST_CASE("[rex-math]: types")
 		rex::math::Vec4<double> v = {};
 		CHECK((v.x == 0 && v.y == 0 && v.z == 0 && v.w == 0));
 
-		v = {{1, 2, 3, 4}};
+		v = {1, 2, 3, 4};
 		CHECK((v.x == v.r && v.r == 1));
 		CHECK((v.y == v.g && v.g == 2));
 		CHECK((v.z == v.b && v.b == 3));
@@ -59,11 +59,41 @@ TEST_CASE("[rex-math]: types")
 		CHECK((xyz.y == rgb.g && rgb.g == 2));
 		CHECK((xyz.z == rgb.b && rgb.b == 3));
 
-		const rex::math::Vec4<double> v1 = {{5, 6, 7, 8}};
+		const rex::math::Vec4<double> v1 = {5, 6, 7, 8};
 		v[0] = 9;
 		v[1] = v1[1];
 		v[2] = v1[2];
 		v[3] = v1[3];
 		CHECK((v[0] == 9 && v[1] == 6 && v[2] == 7 && v[3] == 8));
+	}
+
+	SUBCASE("Mat2<float>")
+	{
+		rex::math::Mat2<float> M = {};
+		CHECK((M[0][0] == 0 && M[0][1] == 0 && M[1][0] == 0 && M[1][1] == 0));
+
+		M = {1, 2, 3, 4};
+		CHECK((M[0].x == 1));
+		CHECK((M[0].y == 2));
+		CHECK((M[1].x == 3));
+		CHECK((M[1].y == 4));
+
+		const rex::math::Mat2<float> M1 = {5, 6, 7, 8};
+		M[0][0] = 9;
+		M[0][1] = M1[0][1];
+		M[1][0] = M1[1][0];
+		M[1][1] = M1[1][1];
+		CHECK((M[0][0] == 9 && M[0][1] == 6 && M[1][0] == 7 && M[1][1] == 8));
+
+	}
+
+	SUBCASE("Mat3<double>")
+	{
+
+	}
+
+	SUBCASE("Mat4<float>")
+	{
+
 	}
 }
