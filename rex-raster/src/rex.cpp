@@ -52,7 +52,7 @@ namespace rex::raster
 		static float t = 0;
 
 		canvas_resize(canvas, self->screen_width, self->screen_height);
-		canvas_clear(canvas, {0.1f, 0.1f, 0.1f, 0.1f}, -300);
+		canvas_clear(canvas, {0.1f, 0.1f, 0.1f, 1.0f}, -300);
 
 		float fov = (float)(30.0 * math::TO_RADIAN);
 		float aspect = (float)canvas.width / (float)canvas.height;
