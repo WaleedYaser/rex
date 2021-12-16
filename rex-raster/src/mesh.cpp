@@ -1,5 +1,3 @@
-#pragma once
-
 #include "rex-raster/mesh.h"
 
 #include <rex-core/file.h>
@@ -26,7 +24,7 @@ namespace rex::raster
 		for (auto p: self.position)
 		{
 			self.bb_min = math::min(self.bb_min, p);
-			self.bb_max = math::max(self.bb_min, p);
+			self.bb_max = math::max(self.bb_max, p);
 		}
 	}
 

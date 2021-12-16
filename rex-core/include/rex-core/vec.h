@@ -17,7 +17,7 @@ namespace rc
 		Allocator allocator;
 
 		T& operator[](sz index) { return ptr[index]; }
-		const T& operator[](sz index) const {return ptr[index]; }
+		const T& operator[](sz index) const { return ptr[index]; }
 	};
 
 	template <typename T>

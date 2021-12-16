@@ -4,7 +4,6 @@
 #include <rex-core/str.h>
 #include <rex-core/defer.h>
 #include <rex-core/path.h>
-#include <rex-core/log.h>
 
 #include <rex-math/math.h>
 #include <rex-math/vec2.h>
@@ -55,12 +54,19 @@ namespace rex::raster
 		canvas_resize(canvas, self->screen_width, self->screen_height);
 		canvas_clear(canvas, {0.1f, 0.1f, 0.1f, 0.1f}, -300);
 
-		auto M =
-			math::mat4_rotation_x(-3.14f * 0.5f) *
-			math::mat4_rotation_y(t) *
-			math::mat4_translation(0.0f, 0.0f, -10.0f);
+		float fov = (float)(30.0 * math::TO_RADIAN);
+		float aspect = (float)canvas.width / (float)canvas.height;
 
-		auto P = math::mat4_perspective(30.0f, (float)canvas.width / (float)canvas.height, 0.1f, 300.0f);
+		float max_length = math::length(mesh.bb_max - mesh.bb_min);
+		float distance_h = max_length / math::tan(fov / 2);
+		float distance_w = max_length / math::tan(fov * aspect / 2);
+		float distance   = math::max(distance_w, distance_h);
+
+		auto M =
+			math::mat4_euler(t, t, t) *
+			math::mat4_translation(0.0f, 0.0f, -distance);
+
+		auto P = math::mat4_perspective(fov, (float)canvas.width / (float)canvas.height, 0.1f, 300.0f);
 
 		auto count = (mesh.indices.count ? mesh.indices.count : mesh.position.count);
 		for (int i = 0; i < count; i += 3)
@@ -88,8 +94,8 @@ namespace rex::raster
 			auto v2 = math::V4{p2.x, p2.y, p2.z, 1.0f} * M;
 
 			auto v0_c = v0 * P; v0_c /= v0_c.w;
-			auto v1_c = v1 * P; v0_c /= v0_c.w;
-			auto v2_c = v2 * P; v0_c /= v0_c.w;
+			auto v1_c = v1 * P; v1_c /= v1_c.w;
+			auto v2_c = v2 * P; v2_c /= v2_c.w;
 
 			// TODO: use viewport matrix
 			// auto v0_s = v0_c * viewport;
@@ -123,9 +129,7 @@ namespace rex::raster
 
 			float area = -math::cross(a, b);
 
-			// TODO: revisit back-face culling
-			// if (area >= 0)
-			//     continue;
+			// TODO: back-face culling
 
 			auto bb_min = math::min(math::min(v0_c.xy, v1_c.xy), v2_c.xy);
 			auto bb_max = math::max(math::max(v0_c.xy, v1_c.xy), v2_c.xy);
@@ -152,7 +156,6 @@ namespace rex::raster
 					w1 *= (z / v1.z);
 					w2 *= (z / v2.z);
 
-					// rex_log_info("pass");
 					if (w0 > 0 && w1 > 0 && w2 > 0)
 					{
 						float depth = w0 * v0.z + w1 * v1.z + w2 * v2.z;
@@ -169,8 +172,10 @@ namespace rex::raster
 								auto frag_pos = v0.xyz * w0 + v1.xyz * w1 + v2.xyz * w2;
 								auto light_dir = math::normalize(light_pos - frag_pos);
 								auto diff = math::max(math::dot(n0, light_dir), 0.0f);
-								auto diffuse = diff * light_color;
-								canvas_color(canvas, x, y) = diffuse * color;
+								auto diffuse = diff * light_color.rgb;
+
+								canvas_color(canvas, x, y).rgb = math::min(diffuse * color.rgb, {1.0f, 1.0f, 1.0f});
+								canvas_color(canvas, x, y).a   = color.a;
 							}
 							else
 							{
@@ -192,14 +197,8 @@ namespace rex::raster
 			self->screen[i].a = (uint8_t)(canvas.color[i].a * 255);
 		}
 
-		// reverse animation
-		if (t <= -3.14f)
-			reverse = false;
-		else if (t >= 3.14f)
-			reverse = true;
-
 		// update t
-		t = reverse ? t - dt : t + dt;
+		t += dt;
 	}
 }
 

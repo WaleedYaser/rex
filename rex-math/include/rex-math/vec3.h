@@ -78,6 +78,24 @@ namespace rex::math
 		return v;
 	}
 
+	// TODO: add unittest
+	template <typename T>
+	inline static Vec3<T>
+	operator*(const Vec3<T> a, const Vec3<T> &b)
+	{
+		return {a.x * b.x, a.y * b.y, a.z * b.z};
+	}
+
+	// TODO: add unittest
+	template <typename T>
+	inline static Vec3<T> &
+	operator*=(Vec3<T> &a, const Vec3<T> b)
+	{
+		a = a * b;
+		return a;
+	}
+
+
 	template <typename T>
 	inline static Vec3<T>
 	operator/(const Vec3<T> &v, T f)
@@ -150,9 +168,9 @@ namespace rex::math
 	max(const Vec3<T> &a, const Vec3<T> &b)
 	{
 		return {
-			a.x > b.x ? a.x : b.x,
-			a.y > b.y ? a.y : b.y,
-			a.z > b.z ? a.z : b.z
+			b.x < a.x ? a.x : b.x,
+			b.y < a.y ? a.y : b.y,
+			b.z < a.z ? a.z : b.z
 		};
 	}
 }

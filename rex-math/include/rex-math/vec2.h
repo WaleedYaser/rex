@@ -145,8 +145,8 @@ namespace rex::math
 	max(const Vec2<T> &a, const Vec2<T> &b)
 	{
 		return {
-			a.x > b.x ? a.x : b.x,
-			a.y > b.y ? a.y : b.y
+			b.x < a.x ? a.x : b.x,
+			b.y < a.y ? a.y : b.y
 		};
 	}
 }
