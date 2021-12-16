@@ -1,432 +1,205 @@
-// #include "rex-raster/gltf.h"
-#include "rex-raster/rex.h"
 #include "rex-raster/exports.h"
-#include "rex-raster/geometry.h"
-#include "rex-raster/constants.h"
+#include "rex-raster/rex.h"
 
-#include <rex-core/memory.h>
 #include <rex-core/str.h>
 #include <rex-core/defer.h>
 #include <rex-core/path.h>
-#include <rex-core/file.h>
-#include <rex-core/log.h>
 
-#include "assert.h"
+#include <rex-math/math.h>
+#include <rex-math/vec2.h>
+#include <rex-math/vec3.h>
+#include <rex-math/vec4.h>
+#include <rex-math/mat4.h>
 
-#include "rex-raster/stb_image.h"
-
-inline static const char*
-str_concat(const char *a, const char *b)
+namespace rex::raster
 {
-	int a_len = 0;
-	for (const char* ptr = a; *ptr != '\0'; ptr++, a_len++);
-	int b_len = 0;
-	for (const char* ptr = b; *ptr != '\0'; ptr++, b_len++);
+	static constexpr math::Color_F32 color_palette[] = {
+		{0.19f, 0.30f, 0.39f, 1.0f}, // dark blue
+		{0.70f, 0.91f, 0.91f, 1.0f}, // light blue
+		{0.56f, 0.73f, 0.67f, 1.0f}, // green
+		{0.95f, 0.82f, 0.59f, 1.0f}, // yellow
+		{0.93f, 0.54f, 0.46f, 1.0f}, // orange
+	};
 
-	char* res = (char*)malloc(a_len + b_len + 1);
-	for (int i = 0; i < a_len; ++i)
-		res[i] = a[i];
-	for (int i = 0; i < b_len; ++i)
-		res[a_len+i] = b[i];
-	res[a_len + b_len] = '\0';
-
-	return res;
-}
-
-inline static void
-init(Rex_Api* api)
-{
-	auto self = (Rex*)api;
-#if 1
-#if 0
-	// parse stl file
-	auto stl_data = rc::file_read(rc::str_fmt(rc::frame_allocator(), "%s/data/dino.stl", rc::app_directory()));
-	rex_defer(rc::str_deinit(stl_data));
+	inline static void
+	init(Rex_Api* api)
 	{
-		auto ptr = stl_data.ptr;
-		// skip header (80 bytes)
-		ptr += 80;
-		// number of triangles (4 bytes)
-		unsigned int triangles_number = *(unsigned int*)ptr;
-		ptr += 4;
-		// allocate data
-		self->vertices_count = triangles_number * 3;
-		self->vertices = rex_alloc_N(Vec3, self->vertices_count);
-		self->normals = rex_alloc_N(Vec3, self->vertices_count);
-		// parse triangles
-		for (unsigned int i = 0; i < triangles_number; ++i)
-		{
-			// copy triangle normal (12 bytes)
-			self->normals[i*3 + 0] = *(Vec3*)ptr;
-			self->normals[i*3 + 1] = *(Vec3*)ptr;
-			self->normals[i*3 + 2] = *(Vec3*)ptr;
-			ptr += 12;
-			// copy 3 triangle vertices (12 bytes each)
-			self->vertices[i*3 + 0] = *(Vec3*)ptr;
-			ptr += 12;
-			self->vertices[i*3 + 1] = *(Vec3*)ptr;
-			ptr += 12;
-			self->vertices[i*3 + 2] = *(Vec3*)ptr;
-			ptr += 12;
-			// skip attribute byt count (2 bytes)
-			ptr += 2;
-		}
-	}
-#endif
+		auto self = (Rex*)api;
 
-	self->vertices_count = cube_vertices_count;
-	self->vertices = rex_alloc_N(Vec3, self->vertices_count);
-	self->normals = rex_alloc_N(Vec3, self->vertices_count);
-
-	for (unsigned i = 0; i < self->vertices_count; ++i)
-	{
-		self->vertices[i] = cube_vertices[i];
-		self->normals[i] = cube_normals[i];
+		self->canvas = canvas_init();
+		self->mesh = mesh_cube();
 	}
 
-#else
-	auto gltf = gltf_load(self);
+	inline static void
+	deinit(Rex_Api* api)
 	{
-		const char* image_path = "";
-		for (int i = 0; i < gltf.root.as_object.length; ++i)
+		auto self = (Rex*)api;
+
+		canvas_deinit(self->canvas);
+		mesh_deinit(self->mesh);
+	}
+
+	inline static void
+	loop(Rex_Api* api)
+	{
+		auto self = (Rex*)api;
+		auto& canvas = self->canvas;
+		auto& mesh = self->mesh;
+		auto dt = self->dt;
+
+		// animation parameters
+		static bool reverse = false;
+		static float t = 0;
+
+		canvas_resize(canvas, self->screen_width, self->screen_height);
+		canvas_clear(canvas, {0.1f, 0.1f, 0.1f, 0.1f}, -300);
+
+		float fov = (float)(30.0 * math::TO_RADIAN);
+		float aspect = (float)canvas.width / (float)canvas.height;
+
+		float max_length = math::length(mesh.bb_max - mesh.bb_min);
+		float distance_h = max_length / math::tan(fov / 2);
+		float distance_w = max_length / math::tan(fov * aspect / 2);
+		float distance   = math::max(distance_w, distance_h);
+
+		auto M =
+			math::mat4_euler(t, t, t) *
+			math::mat4_translation(0.0f, 0.0f, -distance);
+
+		auto P = math::mat4_perspective(fov, (float)canvas.width / (float)canvas.height, 0.1f, 300.0f);
+
+		auto count = (mesh.indices.count ? mesh.indices.count : mesh.position.count);
+		for (int i = 0; i < count; i += 3)
 		{
-			if (str_eq(gltf.root.as_object.members[i].name, "images"))
+			int i0, i1, i2;
+			if (mesh.indices.count)
 			{
-				image_path = gltf.root.as_object.members[i].value.as_array.values[0].as_object.members[0].value.as_str;
-				break;
+				i0 = mesh.indices[i+0];
+				i1 = mesh.indices[i+1];
+				i2 = mesh.indices[i+2];
 			}
-		}
-		image_path = str_concat("data/girl/", image_path);
-
-		// load image file
-		int width, height, channels;
-		unsigned char* data = stbi_load(image_path, &width, &height, &channels, 4);
-
-		self->image.pixels = rex_alloc_N(Pixel, width * height);
-		self->image.width = width;
-		self->image.height = height;
-
-		for (int i = 0; i < width * height; ++i)
-		{
-			self->image.pixels[i].r = data[i*4 + 0] / 255.0f;
-			self->image.pixels[i].g = data[i*4 + 1] / 255.0f;
-			self->image.pixels[i].b = data[i*4 + 2] / 255.0f;
-			self->image.pixels[i].a = data[i*4 + 3] / 255.0f;
-		}
-
-		stbi_image_free(data);
-
-		{
-			auto buffer = json_find(gltf.root, "buffers").as_array.values[0];
-			auto buffer_length = json_find(buffer, "byteLength").as_int;
-			auto buffer_uri = json_find(buffer, "uri").as_str;
-
-			auto bin_content = rc::file_read(str_concat("data/girl/", buffer_uri));
-			assert(bin_content.count == buffer_length);
-
-			// load only first mesh
-			auto meshes = json_find(gltf.root, "meshes");
-			auto mesh0 = meshes.as_array.values[0];
-			auto primitive = json_find(mesh0, "primitives").as_array.values[0];
-			auto attributes = json_find(primitive, "attributes");
-
-			auto position_attr = json_find(attributes, "POSITION").as_int;
-			auto normal_attr = json_find(attributes, "NORMAL").as_int;
-			auto uv_attr = json_find(attributes, "TEXCOORD_0").as_int;
-			auto indices_attr = json_find(primitive, "indices").as_int;
-
-			auto accessors = json_find(gltf.root, "accessors");
-			auto position_acc = accessors.as_array.values[position_attr];
-			auto normal_acc = accessors.as_array.values[normal_attr];
-			auto uv_acc = accessors.as_array.values[uv_attr];
-			auto indices_acc = accessors.as_array.values[indices_attr];
-
-			auto position_count = json_find(position_acc, "count").as_int;
-			auto normal_count = json_find(normal_acc, "count").as_int;
-			auto uv_count = json_find(uv_acc, "count").as_int;
-			auto indices_count = json_find(indices_acc, "count").as_int;
-
-			assert(position_count == normal_count && normal_count == uv_count);
-			self->vertices_count = (unsigned int)position_count;
-			self->indices_count = (unsigned int)indices_count;
-
-			auto position_offset = json_find(position_acc, "byteOffset").as_int;
-			auto normal_offset = json_find(normal_acc, "byteOffset").as_int;
-			auto uv_offset = json_find(uv_acc, "byteOffset").as_int;
-			auto indices_offset = json_find(indices_acc, "byteOffset").as_int;
-
-			auto position_view_index = json_find(position_acc, "bufferView").as_int;
-			auto normal_view_index = json_find(normal_acc, "bufferView").as_int;
-			auto uv_view_index = json_find(uv_acc, "bufferView").as_int;
-			auto indices_view_index = json_find(indices_acc, "bufferView").as_int;
-
-			auto bufferViews = json_find(gltf.root, "bufferViews");
-			auto position_view = bufferViews.as_array.values[position_view_index];
-			auto normal_view = bufferViews.as_array.values[normal_view_index];
-			auto uv_view = bufferViews.as_array.values[uv_view_index];
-			auto indices_view = bufferViews.as_array.values[indices_view_index];
-
-			position_offset += json_find(position_view, "byteOffset").as_int;
-			normal_offset += json_find(normal_view, "byteOffset").as_int;
-			uv_offset += json_find(uv_view, "byteOffset").as_int;
-			indices_offset += json_find(indices_view, "byteOffset").as_int;
-
-			self->vertices = (Vec3*)(bin_content.ptr + position_offset);
-			self->normals = (Vec3*)(bin_content.ptr + normal_offset);
-			self->uvs = (Vec2*)(bin_content.ptr + uv_offset);
-			self->indices = (unsigned int*)(bin_content.ptr + indices_offset);
-		}
-	}
-#endif
-
-	// center model
-	{
-		Vec3 bb_min = self->vertices[0];
-		Vec3 bb_max = self->vertices[0];
-		for (unsigned int i = 1; i < self->vertices_count; ++i)
-		{
-			bb_min = min(bb_min, self->vertices[i]);
-			bb_max = max(bb_max, self->vertices[i]);
-		}
-		for (unsigned int i = 0; i < self->vertices_count; ++i)
-			self->vertices[i] -= ((bb_max + bb_min) * 0.5f);
-
-		self->camera_z = (bb_max - bb_min).z * 5.0f;
-	}
-}
-
-inline static void
-deinit(Rex_Api* api)
-{
-	auto self = (Rex*)api;
-
-	rex_dealloc(self->image.pixels);
-	rex_dealloc(self->depth_buffer);
-	rex_dealloc(self->canvas.pixels);
-	// self->free(self->vertices);
-	// self->free(self->normals);
-}
-
-
-inline static void
-loop(Rex_Api* api)
-{
-	auto self = (Rex*)api;
-
-	auto& canvas = self->canvas;
-
-	if (canvas.width != self->screen_width || canvas.height != self->screen_height)
-	{
-		rex_dealloc(canvas.pixels);
-		canvas.pixels = rex_alloc_N(Pixel, self->screen_width * self->screen_height);
-		canvas.width = self->screen_width;
-		canvas.height = self->screen_height;
-
-		rex_dealloc(self->depth_buffer);
-		self->depth_buffer = rex_alloc_N(float, self->screen_width * self->screen_height);
-	}
-
-	// clear color and depth
-	for (int i = 0; i < canvas.height * canvas.width; ++i)
-	{
-		canvas.pixels[i] = { 0.1f, 0.1f, 0.1f, 1.0f };
-		self->depth_buffer[i] = -300.0f;
-	}
-
-	// animation parameters
-	static bool reverse = false;
-	static float t = 0;
-
-#define STL 1
-// #define TEXTURE 0
-// #define TRI 1
-// #define CUBE 1
-// #define QUAD 1
-
-#if STL
-	Vec3* vertices = self->vertices;
-	Vec3* normals = self->normals;
-	int count = self->indices_count > 0 ? self->indices_count : self->vertices_count;
-	// model matrix
-	Mat4 model =  mat4_rotation_x(-3.14f * 0.5f) * mat4_rotation_y(t) * mat4_translation(0, 0, -self->camera_z);
-#elif TRI
-	const Vec3* vertices = triangle_vertices;
-	const Vec3* normals = triangle_normals;
-	[[maybe_unused]] const Pixel* colors = triangle_colors;
-	int count = triangle_vertices_count;
-	// model matrix
-	Mat4 model = mat4_rotation_y(t) * mat4_translation(0, 0, -5);
-#elif CUBE
-	const Vec3* vertices = cube_vertices;
-	const Vec3* normals = cube_normals;
-	[[maybe_unused]] const Pixel* colors = cube_colors;
-	int count = cube_vertices_count;
-	// model matrix
-	Mat4 model = mat4_rotation_y(t) * mat4_translation(0, 0, -5);
-#elif QUAD
-	const Vec3* vertices = quad_vertices;
-	int count = quad_vertices_count;
-	// model matrix
-	Mat4 model = mat4_rotation_y(t) * mat4_translation(0, 0, -2.5f);
-#endif
-
-	// projection matrix
-	Mat4 proj = mat4_perspective(30, (float)canvas.width / (float)canvas.height, 0.1f, 300.0f);
-
-	Mat4 mp = model * proj;
-	for (int i = 0; i < count; i += 3)
-	{
-		int i0 = i, i1 = i+1, i2 = i+2;
-		if (self->indices_count > 0)
-		{
-			i0 = self->indices[i+0];
-			i1 = self->indices[i+1];
-			i2 = self->indices[i+2];
-		}
-
-		// transform vertices to world space
-		Vec4 _v0_w = Vec4{ vertices[i0].x, vertices[i0].y, vertices[i0].z, 1.0f } * model;
-		Vec4 _v1_w = Vec4{ vertices[i1].x, vertices[i1].y, vertices[i1].z, 1.0f } * model;
-		Vec4 _v2_w = Vec4{ vertices[i2].x, vertices[i2].y, vertices[i2].z, 1.0f } * model;
-
-		Vec3 v0_w = Vec3{ _v0_w.x, _v0_w.y, _v0_w.z };
-		Vec3 v1_w = Vec3{ _v1_w.x, _v1_w.y, _v1_w.z };
-		Vec3 v2_w = Vec3{ _v2_w.x, _v2_w.y, _v2_w.z };
-
-		// transform normals to world space
-#if 1
-		Vec4 _n0 = Vec4{ normals[i0].x, normals[i0].y, normals[i0].z, 0.0f } * model;
-		Vec4 _n1 = Vec4{ normals[i1].x, normals[i1].y, normals[i1].z, 0.0f } * model;
-		Vec4 _n2 = Vec4{ normals[i2].x, normals[i2].y, normals[i2].z, 0.0f } * model;
-
-		Vec3 n0 = Vec3{ _n0.x, _n0.y, _n0.z };
-		Vec3 n1 = Vec3{ _n1.x, _n1.y, _n1.z };
-		Vec3 n2 = Vec3{ _n2.x, _n2.y, _n2.z };
-#elif TEXTURE
-		Vec2 uv0 = self->uvs[i0];
-		Vec2 uv1 = self->uvs[i1];
-		Vec2 uv2 = self->uvs[i2];
-#endif
-
-		// transform vertices to clip space
-		Vec4 v0_c = Vec4{ v0_w.x, v0_w.y, v0_w.z, 1.0f } * proj;
-		v0_c /= v0_c.w;
-		Vec4 v1_c = Vec4{ v1_w.x, v1_w.y, v1_w.z, 1.0f } * proj;
-		v1_c /= v1_c.w;
-		Vec4 v2_c = Vec4{ v2_w.x, v2_w.y, v2_w.z, 1.0f } * proj;
-		v2_c /= v2_c.w;
-
-		// transform vertices to screen space
-		v0_c.x = (v0_c.x + 1.0f) * canvas.width * 0.5f;
-		v0_c.y = (v0_c.y + 1.0f) * canvas.height * 0.5f;
-		v1_c.x = (v1_c.x + 1.0f) * canvas.width * 0.5f;
-		v1_c.y = (v1_c.y + 1.0f) * canvas.height * 0.5f;
-		v2_c.x = (v2_c.x + 1.0f) * canvas.width * 0.5f;
-		v2_c.y = (v2_c.y + 1.0f) * canvas.height * 0.5f;
-
-		Vec2 v0 = { v0_c.x, v0_c.y };
-		Vec2 v1 = { v1_c.x, v1_c.y };
-		Vec2 v2 = { v2_c.x, v2_c.y };
-
-		Vec2 a = v1 - v0;
-		Vec2 b = v2 - v1;
-		Vec2 c = v0 - v2;
-
-		float area = -cross(a, b);
-
-		// TODO: revisit back-face culling
-		// if (area >= 0)
-		//     continue;
-
-		Vec2 bb_min = min(min(v0, v1), v2);
-		Vec2 bb_max = max(max(v0, v1), v2);
-
-		int min_x = (int)max(0, bb_min.x);
-		int max_x = (int)min((float)canvas.width - 1, bb_max.x);
-
-		int min_y = (int)max(0, bb_min.y);
-		int max_y = (int)min((float)canvas.height - 1, bb_max.y);
-
-		for (int y = min_y; y <= max_y; ++y)
-		{
-			for (int x = min_x; x <= max_x; ++x)
+			else
 			{
-				Vec2 p = Vec2{x + 0.5f, y + 0.5f};
+				i0 = i+0;
+				i1 = i+1;
+				i2 = i+2;
+			}
 
-				float w0 = cross(p - v1, b) / area;
-				float w1 = cross(p - v2, c) / area;
-				float w2 = cross(p - v0, a) / area;
+			auto p0 = mesh.position[i0];
+			auto p1 = mesh.position[i1];
+			auto p2 = mesh.position[i2];
 
-				// perspective correction
-				float z = 1.0f / (
-					w0 * (1.0f / v0_w.z) +
-					w1 * (1.0f / v1_w.z) +
-					w2 * (1.0f / v2_w.z));
-				w0 *= (z / v0_w.z);
-				w1 *= (z / v1_w.z);
-				w2 *= (z / v2_w.z);
+			auto v0 = math::V4{p0.x, p0.y, p0.z, 1.0f} * M;
+			auto v1 = math::V4{p1.x, p1.y, p1.z, 1.0f} * M;
+			auto v2 = math::V4{p2.x, p2.y, p2.z, 1.0f} * M;
 
-				// rex_log_info("pass");
-				if (w0 > 0 && w1 > 0 && w2 > 0)
+			auto v0_c = v0 * P; v0_c /= v0_c.w;
+			auto v1_c = v1 * P; v1_c /= v1_c.w;
+			auto v2_c = v2 * P; v2_c /= v2_c.w;
+
+			// TODO: use viewport matrix
+			// auto v0_s = v0_c * viewport;
+			// auto v1_s = v1_c * viewport;
+			// auto v2_s = v2_c * viewport;
+
+			v0_c.x = (v0_c.x + 1.0f) * canvas.width * 0.5f; v0_c.y = (v0_c.y + 1.0f) * canvas.height * 0.5f;
+			v1_c.x = (v1_c.x + 1.0f) * canvas.width * 0.5f; v1_c.y = (v1_c.y + 1.0f) * canvas.height * 0.5f;
+			v2_c.x = (v2_c.x + 1.0f) * canvas.width * 0.5f; v2_c.y = (v2_c.y + 1.0f) * canvas.height * 0.5f;
+
+			math::V3 n0, n1, n2;
+			if (mesh.normal.count)
+			{
+				// TODO: handle this propably
+				n0 = (math::V4{ mesh.normal[i0].x, mesh.normal[i0].y, mesh.normal[i0].z, 0.0f } * M).xyz;
+				n1 = (math::V4{ mesh.normal[i1].x, mesh.normal[i1].y, mesh.normal[i1].z, 0.0f } * M).xyz;
+				n2 = (math::V4{ mesh.normal[i2].x, mesh.normal[i2].y, mesh.normal[i2].z, 0.0f } * M).xyz;
+			}
+
+			math::Color_F32 c0, c1, c2;
+			if (mesh.color.count)
+			{
+				c0 = mesh.color[i0];
+				c1 = mesh.color[i1];
+				c2 = mesh.color[i2];
+			}
+
+			auto a = v1_c.xy - v0_c.xy;
+			auto b = v2_c.xy - v1_c.xy;
+			auto c = v0_c.xy - v2_c.xy;
+
+			float area = -math::cross(a, b);
+
+			// TODO: back-face culling
+
+			auto bb_min = math::min(math::min(v0_c.xy, v1_c.xy), v2_c.xy);
+			auto bb_max = math::max(math::max(v0_c.xy, v1_c.xy), v2_c.xy);
+
+			int min_x = (int)math::max(0.0f, bb_min.x);
+			int max_x = (int)math::min((float)(canvas.width - 1), bb_max.x);
+
+			int min_y = (int)math::max(0.0f, bb_min.y);
+			int max_y = (int)math::min((float)(canvas.height - 1), bb_max.y);
+
+			for (int y = min_y; y <= max_y; ++y)
+			{
+				for (int x = min_x; x <= max_x; ++x)
 				{
-					float depth = w0 * v0_w.z + w1 * v1_w.z + w2 * v2_w.z;
-					if (depth > self->depth_buffer[y * canvas.width + x])
+					auto p = math::V2{x + 0.5f, y + 0.5f};
+
+					float w0 = math::cross(p - v1_c.xy, b) / area;
+					float w1 = math::cross(p - v2_c.xy, c) / area;
+					float w2 = math::cross(p - v0_c.xy, a) / area;
+
+					// perspective correction
+					float z = 1.0f / (w0 * (1.0f / v0.z) + w1 * (1.0f / v1.z) + w2 * (1.0f / v2.z));
+					w0 *= (z / v0.z);
+					w1 *= (z / v1.z);
+					w2 *= (z / v2.z);
+
+					if (w0 > 0 && w1 > 0 && w2 > 0)
 					{
-#if STL
-						Pixel color = color_palette[4];
-#else
-						Pixel color = w0 * colors[i0] + w1 * colors[i1] + w2 * colors[i2];
-#endif
+						float depth = w0 * v0.z + w1 * v1.z + w2 * v2.z;
+						if (depth > canvas_depth(canvas, x, y))
+						{
+							math::Color_F32 color = (mesh.color.count ? w0 * c0 + w1 * c1 + w2 * c2 : color_palette[4]);
 
-#if TEXTURE
-						Vec2 uv = w0 * uv0 + w1 * uv1 + w2 * uv2;
-						int idx = (int)(uv.x * (self->image.width - 1)) + (int)(uv.y * (self->image.height - 1)) * self->image.width;
-						Pixel color = self->image.pixels[idx];
-#endif
+							if (mesh.normal.count)
+							{
+								math::V3 light_pos = {};
+								math::Color_F32 light_color = {1.0f, 1.0f, 1.0f, 1.0f};
 
-#define LIGHT 0
-#if LIGHT
-						Pixel light_color = Pixel{1.0f, 1.0f, 1.0f, 1.0f} * 1.0f;
-						Vec3 light_pos = {};
-						// very basic phong lighting
-						Vec3 frag_pos = v0_w * w0 + v1_w * w1 + v2_w * w2;
-						Vec3 light_dir = normalize(light_pos - frag_pos);
-						float diff = max(dot(n0, light_dir), 0.0);
-						Pixel diffuse = diff * light_color;
+								// very basic phong lighting
+								auto frag_pos = v0.xyz * w0 + v1.xyz * w1 + v2.xyz * w2;
+								auto light_dir = math::normalize(light_pos - frag_pos);
+								auto diff = math::max(math::dot(n0, light_dir), 0.0f);
+								auto diffuse = diff * light_color.rgb;
 
-						canvas.pixels[y * canvas.width + x] = {
-							diffuse.r * color.r,
-							diffuse.g * color.g,
-							diffuse.b * color.b,
-							diffuse.a * color.a,
-						};
-#else
-						canvas.pixels[y * canvas.width + x] = color;
-#endif
-						self->depth_buffer[y * canvas.width + x] = depth;
+								canvas_color(canvas, x, y).rgb = math::min(diffuse * color.rgb, {1.0f, 1.0f, 1.0f});
+								canvas_color(canvas, x, y).a   = color.a;
+							}
+							else
+							{
+								canvas_color(canvas, x, y) = color;
+							}
+							canvas_depth(canvas, x, y) = depth;
+						}
 					}
 				}
 			}
 		}
+
+		// blit to screen
+		for (int i = 0; i < self->screen_width * self->screen_height; ++i)
+		{
+			self->screen[i].r = (uint8_t)(canvas.color[i].r * 255);
+			self->screen[i].g = (uint8_t)(canvas.color[i].g * 255);
+			self->screen[i].b = (uint8_t)(canvas.color[i].b * 255);
+			self->screen[i].a = (uint8_t)(canvas.color[i].a * 255);
+		}
+
+		// update t
+		t += dt;
 	}
-
-	for (int i = 0; i < self->screen_width * self->screen_height; ++i)
-	{
-		self->screen[i].r = (uint8_t)(canvas.pixels[i].r * 255);
-		self->screen[i].g = (uint8_t)(canvas.pixels[i].g * 255);
-		self->screen[i].b = (uint8_t)(canvas.pixels[i].b * 255);
-		self->screen[i].a = (uint8_t)(canvas.pixels[i].a * 255);
-	}
-
-	// reverse animation
-	if (t <= -3.14f)
-		reverse = false;
-	else if (t >= 3.14f)
-		reverse = true;
-
-	// update t
-	float dt = self->dt; // > 0.033f ? 0.033f : self->dt;
-	t = reverse ? t - dt : t + dt;
 }
 
 #ifdef __cplusplus
@@ -438,19 +211,19 @@ rex_api(Rex_Api* api, bool reload)
 {
 	if (api == nullptr)
 	{
-		auto self = rex_alloc_zeroed_T(Rex);
+		auto self = rex_alloc_zeroed_T(rex::raster::Rex);
 
-		self->init = init;
-		self->deinit = deinit;
-		self->loop = loop;
+		self->init = rex::raster::init;
+		self->deinit = rex::raster::deinit;
+		self->loop = rex::raster::loop;
 
 		return self;
 	}
 	else if (reload)
 	{
-		api->init = init;
-		api->deinit = deinit;
-		api->loop = loop;
+		api->init = rex::raster::init;
+		api->deinit = rex::raster::deinit;
+		api->loop = rex::raster::loop;
 
 		return api;
 	}

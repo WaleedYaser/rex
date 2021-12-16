@@ -29,18 +29,18 @@ load_rex_api()
 	static Rex_Api_RAII rex;
 
 #if REX_HOT_RELOAD == 1
-	Str dll_path = str_fmt(frame_allocator(), "%s/rex-raster.dll", app_director());
-	Str tmp_path = str_fmt(frame_allocator(), "%s/rex-raster_tmp.dll", app_director());
+	auto dll_path = rc::str_fmt(rc::frame_allocator(), "%s/rex-raster.dll", rc::app_directory());
+	auto tmp_path = rc::str_fmt(rc::frame_allocator(), "%s/rex-raster_tmp.dll", rc::app_directory());
 
 	WIN32_FILE_ATTRIBUTE_DATA data = {};
 	bool res = GetFileAttributesExA(dll_path.ptr, GetFileExInfoStandard, &data);
 	rex_assert_msg(res, "failed to get 'rex-raster.dll'attributes");
 	if (res == false)
-		return;
+		return rex.api;
 
 	static FILETIME last_time;
 	if (CompareFileTime(&last_time, &data.ftLastWriteTime) == 0)
-		return;
+		return rex.api;
 
 	static HMODULE rex_dll;
 	if (rex_dll)

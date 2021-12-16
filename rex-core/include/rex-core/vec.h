@@ -17,7 +17,7 @@ namespace rc
 		Allocator allocator;
 
 		T& operator[](sz index) { return ptr[index]; }
-		const T& operator[](sz index) const {return ptr[index]; }
+		const T& operator[](sz index) const { return ptr[index]; }
 	};
 
 	template <typename T>
@@ -133,6 +133,16 @@ namespace rc
 		for (sz i = 0; i < self.count; ++i)
 			self[i] = old_ptr[i];
 		rex_dealloc_from(self.allocator, old_ptr);
+	}
+
+	// TODO: add unittest
+	template <typename T>
+	inline static void
+	vec_resize(Vec<T>& self, sz count)
+	{
+		if (count > self.capacity)
+			vec_reserve(self, count - self.capacity);
+		self.count = count;
 	}
 
 	template <typename T, typename R>

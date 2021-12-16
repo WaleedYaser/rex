@@ -4,7 +4,6 @@
 #include <rex-core/memory.h>
 #include <rex-core/str.h>
 #include <rex-core/time.h>
-#include <rex-core/log.h>
 
 #if REX_OS_WASM
 # include <emscripten/emscripten.h>
@@ -70,11 +69,13 @@ int main()
 
 #if REX_OS_WASM
 	emscripten_request_animation_frame_loop(_rex_frame, window);
+	// TODO: we don't free resources here
 #else
 	while (_rex_frame(0, window));
-#endif
 
 	// free resources
+	rex_dealloc(rex->screen);
 	rc::window_deinit(window);
 	rex->deinit(rex);
+#endif
 }

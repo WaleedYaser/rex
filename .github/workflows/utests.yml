@@ -72,7 +72,7 @@ jobs:
       run: cmake --install build --prefix rex-wasm
 
     - name: Deploy
-      if: github.ref == 'ref/head/main'
+      if: github.event.pull_request.merged == 'true'
       uses: cpina/github-action-push-to-another-repository@v1.3
       env:
         API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}

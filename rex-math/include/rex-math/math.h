@@ -45,4 +45,8 @@ namespace rex::math
 
 	inline static float atan2(float y, float x) { return (float)::atan2(y, x); }
 	inline static double atan2(double y, double x) { return ::atan2(y, x); }
+
+	// TODO: add unittests
+	template <typename T> inline static T min(T a, T b) { return a < b ? a : b; }
+	template <typename T> inline static T max(T a, T b) { return b < a ? a : b; }
 }
