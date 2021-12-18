@@ -67,6 +67,7 @@ jobs:
 
     - name: Test
       run: node build/bin/rex-utests.js
+      working-directory: build/bin
 
     - name: Install
       run: cmake --install build --prefix rex-wasm
