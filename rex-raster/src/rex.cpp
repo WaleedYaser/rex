@@ -30,7 +30,7 @@ namespace rex::raster
 
 		self->canvas = canvas_init();
 
-		self->mesh = mesh_from_stl(rc::str_fmt(rc::frame_allocator(), "%s/data/dino.stl", rc::app_directory()).ptr);
+		self->mesh = mesh_from_stl(rc::str_fmt(rc::frame_allocator(), "%s/data/cube.stl", rc::app_directory()).ptr);
 	}
 
 	inline static void
@@ -166,7 +166,7 @@ namespace rex::raster
 						float depth = w0 * v0.z + w1 * v1.z + w2 * v2.z;
 						if (depth > canvas_depth(canvas, x, y))
 						{
-							math::Color_F32 color = (mesh.color.count ? w0 * c0 + w1 * c1 + w2 * c2 : color_palette[4]);
+							math::Color_F32 color = (mesh.color.count ? w0 * c0 + w1 * c1 + w2 * c2 : color_palette[2]);
 
 							if (mesh.normal.count)
 							{

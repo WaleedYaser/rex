@@ -34,7 +34,8 @@ if (EMSCRIPTEN)
 	target_link_options(rex-options INTERFACE
 		"SHELL:-o2"
 		"SHELL:-s ALLOW_MEMORY_GROWTH=1"
-		"SHELL:--preload-file ${CMAKE_SOURCE_DIR}/data@data"
+		"SHELL:--preload-file ${CMAKE_SOURCE_DIR}/data/dino.stl@data/dino.stl"
+		"SHELL:--preload-file ${CMAKE_SOURCE_DIR}/data/cube.stl@data/cube.stl"
 	)
 endif()
 
