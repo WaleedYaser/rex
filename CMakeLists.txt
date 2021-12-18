@@ -64,13 +64,15 @@ if (EMSCRIPTEN)
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/rex-viewer.js
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/rex-viewer.data
 			${CMAKE_SOURCE_DIR}/LICENSE
-		DESTINATION ".")
+		DESTINATION "."
+	)
 else()
-
 	add_custom_target(rex-deploy-data ALL
 		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data/ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/data/
 		COMMENT "[rex-deploy]: deploy rex data."
 	)
+
+	install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/data DESTINATION ".")
 
 	if(REX_HOT_RELOAD)
 		install(TARGETS rex-viewer rex-raster RUNTIME DESTINATION ".")
@@ -80,7 +82,6 @@ else()
 
 endif()
 
-install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/data DESTINATION ".")
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
