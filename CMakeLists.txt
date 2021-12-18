@@ -51,11 +51,6 @@ include(CTest)
 add_subdirectory(rex-utests)
 add_subdirectory(rex-scratch)
 
-add_custom_target(rex-deploy-data ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data/ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/data/
-	COMMENT "[rex-deploy]: deploy rex data."
-)
-
 if (EMSCRIPTEN)
 	add_custom_target(rex-deploy-html ALL
 		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/rex-core/src/wasm/index.html ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html
@@ -70,10 +65,19 @@ if (EMSCRIPTEN)
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/rex-viewer.data
 			${CMAKE_SOURCE_DIR}/LICENSE
 		DESTINATION ".")
-elseif(REX_HOT_RELOAD)
-	install(TARGETS rex-viewer rex-raster RUNTIME DESTINATION ".")
 else()
-	install(TARGETS rex-viewer RUNTIME DESTINATION ".")
+
+	add_custom_target(rex-deploy-data ALL
+		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data/ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/data/
+		COMMENT "[rex-deploy]: deploy rex data."
+	)
+
+	if(REX_HOT_RELOAD)
+		install(TARGETS rex-viewer rex-raster RUNTIME DESTINATION ".")
+	else()
+		install(TARGETS rex-viewer RUNTIME DESTINATION ".")
+	endif()
+
 endif()
 
 install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/data DESTINATION ".")
