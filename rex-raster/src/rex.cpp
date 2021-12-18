@@ -11,6 +11,8 @@
 #include <rex-math/vec4.h>
 #include <rex-math/mat4.h>
 
+#include <float.h>
+
 namespace rex::raster
 {
 	static constexpr math::Color_F32 color_palette[] = {
@@ -27,7 +29,8 @@ namespace rex::raster
 		auto self = (Rex*)api;
 
 		self->canvas = canvas_init();
-		self->mesh = mesh_cube();
+
+		self->mesh = mesh_from_stl(rc::str_fmt(rc::frame_allocator(), "%s/data/dino.stl", rc::app_directory()).ptr);
 	}
 
 	inline static void
@@ -52,7 +55,7 @@ namespace rex::raster
 		static float t = 0;
 
 		canvas_resize(canvas, self->screen_width, self->screen_height);
-		canvas_clear(canvas, {0.1f, 0.1f, 0.1f, 1.0f}, -300);
+		canvas_clear(canvas, {0.1f, 0.1f, 0.1f, 1.0f}, -FLT_MAX);
 
 		float fov = (float)(30.0 * math::TO_RADIAN);
 		float aspect = (float)canvas.width / (float)canvas.height;
@@ -63,10 +66,12 @@ namespace rex::raster
 		float distance   = math::max(distance_w, distance_h);
 
 		auto M =
-			math::mat4_euler(t, t, t) *
+			math::mat4_translation(-mesh.bb_min - (mesh.bb_max - mesh.bb_min) * 0.5f) *
+			math::mat4_euler((float)math::PI_DIV_2, 0.0f, 0.0f) *
+			math::mat4_euler(0.0f, t, 0.0f) *
 			math::mat4_translation(0.0f, 0.0f, -distance);
 
-		auto P = math::mat4_perspective(fov, (float)canvas.width / (float)canvas.height, 0.1f, 300.0f);
+		auto P = math::mat4_perspective(fov, (float)canvas.width / (float)canvas.height, 0.1f, distance + max_length);
 
 		auto count = (mesh.indices.count ? mesh.indices.count : mesh.position.count);
 		for (int i = 0; i < count; i += 3)

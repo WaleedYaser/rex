@@ -31,7 +31,11 @@ if (NOT EMSCRIPTEN)
 endif()
 
 if (EMSCRIPTEN)
-	target_link_options(rex-options INTERFACE "SHELL:-o2" "SHELL: -s ALLOW_MEMORY_GROWTH=1")
+	target_link_options(rex-options INTERFACE
+		"SHELL:-o2"
+		"SHELL:-s ALLOW_MEMORY_GROWTH=1"
+		"SHELL:--preload-file ${CMAKE_SOURCE_DIR}/data@data"
+	)
 endif()
 
 if (REX_HOT_RELOAD)
@@ -63,6 +67,7 @@ if (EMSCRIPTEN)
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/rex-viewer.wasm
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/rex-viewer.js
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/rex-viewer.data
 			${CMAKE_SOURCE_DIR}/LICENSE
 		DESTINATION ".")
 elseif(REX_HOT_RELOAD)
