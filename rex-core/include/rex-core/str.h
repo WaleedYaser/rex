@@ -35,6 +35,12 @@ namespace rc
 	REX_CORE_EXPORT void str_clear(Str& self);
 	REX_CORE_EXPORT void str_append(Str& self, const Str& other);
 	REX_CORE_EXPORT void str_append(Str& self, const char* format, ...);
+	// TODO: write unit tests
+	REX_CORE_EXPORT Vec<Str> str_lines(const Str& self, Allocator allocator = rex_allocator());
+	REX_CORE_EXPORT Vec<Str> str_split(const Str& self, char c, Allocator allocator = rex_allocator());
+	// TODO: use Res instead of boolean pointer
+	REX_CORE_EXPORT double str_to_double(const Str& self, bool* succeeded);
+	REX_CORE_EXPORT int64_t str_to_int(const Str& self, bool* succeeded);
 
 	REX_CORE_EXPORT bool operator==(const Str& self, const Str& other);
 

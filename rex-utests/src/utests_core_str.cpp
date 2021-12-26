@@ -245,6 +245,44 @@ TEST_CASE("[rex-core]: str")
 		CHECK(s.capacity > s.count);
 	}
 
+	SUBCASE("str to double")
+	{
+		bool result = false;
+
+		CHECK((rc::str_to_double(rc::str_lit("0"), &result) == 0 && result == true));
+		CHECK((rc::str_to_double(rc::str_lit("1"), &result) == 1 && result == true));
+
+		CHECK((rc::str_to_double(rc::str_lit("0.0"), &result) == 0.0 && result == true));
+		CHECK((rc::str_to_double(rc::str_lit("1.0"), &result) == 1.0 && result == true));
+
+		CHECK((rc::str_to_double(rc::str_lit(".5"), &result) == doctest::Approx(0.5) && result == true));
+		CHECK((rc::str_to_double(rc::str_lit(".2"), &result) == doctest::Approx(0.2) && result == true));
+
+		CHECK((rc::str_to_double(rc::str_lit("-1"), &result) == -1 && result == true));
+		CHECK((rc::str_to_double(rc::str_lit("-1.0"), &result) == -1.0 && result == true));
+
+		CHECK((rc::str_to_double(rc::str_lit("-.5"), &result) == doctest::Approx(-0.5) && result == true));
+		CHECK((rc::str_to_double(rc::str_lit("-.2"), &result) == doctest::Approx(-0.2) && result == true));
+
+		CHECK((rc::str_to_double(rc::str_lit("-123.4567"), &result) == doctest::Approx(-123.4567) && result == true));
+		CHECK((rc::str_to_double(rc::str_lit("w13"), &result) == 0 && result == false));
+
+		CHECK((rc::str_to_double(rc::str_lit("-1.0e4"), &result) == doctest::Approx(-10000) && result == true));
+		CHECK((rc::str_to_double(rc::str_lit("-1.0e-4"), &result) == doctest::Approx(-0.0001) && result == true));
+	}
+
+	SUBCASE("str to int")
+	{
+		bool result = false;
+
+		CHECK((rc::str_to_int(rc::str_lit("0"), &result) == 0 && result == true));
+		CHECK((rc::str_to_int(rc::str_lit("1"), &result) == 1 && result == true));
+
+		CHECK((rc::str_to_int(rc::str_lit("123456789"), &result) == 123456789LL && result == true));
+		CHECK((rc::str_to_int(rc::str_lit("-123456789"), &result) == -123456789LL && result == true));
+		CHECK((rc::str_to_int(rc::str_lit("w13"), &result) == 0 && result == false));
+	}
+
 	SUBCASE("str equal")
 	{
 		auto s1 = rc::str_from("Hello");

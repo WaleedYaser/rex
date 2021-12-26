@@ -27,4 +27,5 @@ namespace rex::raster
 	REX_RASTER_EXPORT Mesh mesh_cube();
 
 	REX_RASTER_EXPORT Mesh mesh_from_stl(const char* path);
+	REX_RASTER_EXPORT Mesh mesh_from_obj(const char* path);
 }

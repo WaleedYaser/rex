@@ -271,14 +271,14 @@ namespace rex::raster
 	{
 		Mesh self = {};
 
-		auto stl_data = rc::file_read(path, rc::frame_allocator());
-		if (stl_data.ptr == nullptr)
+		auto content = rc::file_read(path, rc::frame_allocator());
+		if (content.ptr == nullptr)
 		{
 			rex_log_error("[rex-raster]: failed to load stl file '%s'", path);
 			return self;
 		}
 
-		auto ptr = stl_data.ptr;
+		auto ptr = content.ptr;
 		// skip header (80 bytes)
 		ptr += 80;
 		// number of triangles (4 bytes)
@@ -308,6 +308,82 @@ namespace rex::raster
 			ptr += 12;
 			// skip attribute byt count (2 bytes)
 			ptr += 2;
+		}
+
+		_mesh_bounding_box(self);
+
+		return self;
+	}
+
+	Mesh
+	mesh_from_obj(const char* path)
+	{
+		Mesh self = {};
+		self.position = rc::vec_init<math::V3>();
+		self.uv = rc::vec_init<math::V2>();
+		self.normal = rc::vec_init<math::V3>();
+		self.indices = rc::vec_init<unsigned>();
+
+		auto content = rc::file_read(path, rc::frame_allocator());
+		if (content.ptr == nullptr)
+		{
+			rex_log_error("[rex-raster]: failed to load obj file '%s'", path);
+			return self;
+		}
+
+		auto lines = rc::str_lines(content, rc::frame_allocator());
+		for (const auto& line: lines)
+		{
+			// skip empty lines
+			if (line.count == 0)
+				continue;
+
+			// skip comments
+			if (line[0] == '#')
+				continue;
+
+			bool result = false;
+			auto splits = rc::str_split(line, ' ', rc::frame_allocator());
+			if (splits[0] == "v")
+			{
+				rex_assert(splits.count == 4);
+				math::V3 v = {};
+				v.x = (float)rc::str_to_double(splits[1], &result); rex_assert(result);
+				v.y = (float)rc::str_to_double(splits[2], &result); rex_assert(result);
+				v.z = (float)rc::str_to_double(splits[3], &result); rex_assert(result);
+				rc::vec_push(self.position, v);
+			}
+			else if (splits[0] == "vt")
+			{
+				rex_assert(splits.count == 3 || splits.count == 4);
+				math::V2 v = {};
+				v.x = (float)rc::str_to_double(splits[1], &result); rex_assert(result);
+				v.y = (float)rc::str_to_double(splits[2], &result); rex_assert(result);
+				rc::vec_push(self.uv, v);
+			}
+			else if (splits[0] == "vn")
+			{
+				rex_assert(splits.count == 4);
+				math::V3 v = {};
+				v.x = (float)rc::str_to_double(splits[1], &result); rex_assert(result);
+				v.y = (float)rc::str_to_double(splits[2], &result); rex_assert(result);
+				v.z = (float)rc::str_to_double(splits[3], &result); rex_assert(result);
+				rc::vec_push(self.normal, v);
+			}
+			else if (splits[0] == "f")
+			{
+				for (int i = 1; i < splits.count; ++i)
+				{
+					auto idx_str = rc::str_split(splits[i], '/', rc::frame_allocator())[0];
+					unsigned idx = (unsigned)rc::str_to_int(idx_str, &result) - 1; rex_assert(result);
+					rc::vec_push(self.indices, idx);
+				}
+			}
+			else
+			{
+				continue;
+				// rex_assert(false);
+			}
 		}
 
 		_mesh_bounding_box(self);

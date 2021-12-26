@@ -133,6 +133,178 @@ namespace rc
 		self.count += len;
 	}
 
+	Vec<Str>
+	str_lines(const Str& self, Allocator allocator)
+	{
+		auto lines = vec_init<Str>(allocator);
+
+		int start = 0;
+		for (int i = 0; i < self.count; ++i)
+		{
+			if (self[i] == '\r' && i + 1 < self.count && self[i+1] == '\n')
+			{
+				if (start != i)
+					vec_push(lines, str_from(self.ptr + start, self.ptr + i, allocator));
+
+				i += 1;
+				start = i + 1;
+			}
+			else if (self[i] == '\r' || self[i] == '\n')
+			{
+				if (start != i)
+					vec_push(lines, str_from(self.ptr + start, self.ptr + i, allocator));
+				start = i + 1;
+			}
+		}
+		// if (start+1 != self.count)
+		// 	vec_push(lines, str_from(self.ptr + start, self.ptr + self.count, allocator));
+
+		return lines;
+	}
+
+	Vec<Str>
+	str_split(const Str& self, char c, Allocator allocator)
+	{
+		auto lines = vec_init<Str>(allocator);
+
+		int start = 0;
+		for (int i = 0; i < self.count; ++i)
+		{
+			if (self[i] == c)
+			{
+				if (start != i)
+					vec_push(lines, str_from(self.ptr + start, self.ptr + i, allocator));
+				start = i + 1;
+			}
+		}
+		if (start != self.count)
+			vec_push(lines, str_from(self.ptr + start, self.ptr + self.count, allocator));
+
+		return lines;
+	}
+
+	// TODO: use Res instead of boolean pointer
+	double
+	str_to_double(const Str& self, bool* succeeded)
+	{
+		if (self.count == 0)
+		{
+			*succeeded = false;
+			return 0;
+		}
+
+		int i = 0;
+		int sign = 1;
+		if (self[0] == '-')
+		{
+			if (self.count == 1)
+			{
+				*succeeded = false;
+				return 0;
+			}
+
+			sign = -1;
+			i = 1;
+		}
+
+		double value = 0.0;
+		double multiplier = 10.0;
+		for (; i < self.count; ++i)
+		{
+			if (self[i] == '.')
+			{
+				multiplier = 1.0 / multiplier;
+				continue;
+			}
+			else if (self[i] == 'e')
+			{
+				bool result = false;
+				auto exp = str_to_int(rc::str_from(self.ptr + i + 1, self.ptr + self.count, frame_allocator()), &result);
+				if (result == false)
+				{
+					*succeeded = false;
+					return 0;
+				}
+
+				if (exp < 0)
+				{
+					for (auto i = exp; i < 0; ++i)
+						value *= 0.1;
+				}
+				else if (exp > 0)
+				{
+					for (auto i = 0; i < exp; ++i)
+						value *= 10;
+				}
+				break;
+			}
+			else if (self[i] >= '0' && self[i] <= '9')
+			{
+				if (multiplier > 1.0)
+				{
+					value *= multiplier;
+					value += self[i] - '0';
+				}
+				else
+				{
+					value += ((self[i] - '0') * multiplier);
+					multiplier *= (0.1);
+				}
+			}
+			else
+			{
+				*succeeded = false;
+				return 0;
+			}
+		}
+
+		*succeeded = true;
+		return sign * value;
+	}
+
+	int64_t
+	str_to_int(const Str& self, bool* succeeded)
+	{
+		if (self.count == 0)
+		{
+			*succeeded = false;
+			return 0;
+		}
+
+		int i = 0;
+		int sign = 1;
+		if (self[0] == '-')
+		{
+			if (self.count == 1)
+			{
+				*succeeded = false;
+				return 0;
+			}
+
+			sign = -1;
+			i = 1;
+		}
+
+		int64_t value = 0;
+		int multiplier = 10;
+		for (; i < self.count; ++i)
+		{
+			if (self[i] >= '0' && self[i] <= '9')
+			{
+				value *= multiplier;
+				value += self[i] - '0';
+			}
+			else
+			{
+				*succeeded = false;
+				return 0;
+			}
+		}
+
+		*succeeded = true;
+		return sign * value;
+	}
+
 	bool
 	operator==(const Str& self, const Str& other)
 	{
@@ -153,7 +325,7 @@ namespace rc
 	{
 		u8 c = *it++;
 		i32 extra = 0;
-		     if (c >= 0xF0) { *cp = c & 0x07; extra = 3; }
+			 if (c >= 0xF0) { *cp = c & 0x07; extra = 3; }
 		else if (c >= 0xE0) { *cp = c & 0x0F; extra = 2; }
 		else if (c >= 0xC0) { *cp = c & 0x1F; extra = 1; }
 		else                { *cp = c; }
