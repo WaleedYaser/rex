@@ -3,6 +3,8 @@
 #include "rex-core/exports.h"
 #include "rex-core/vec.h"
 
+#include <stdint.h>
+
 namespace rc
 {
 	using Str   = Vec<char>;
