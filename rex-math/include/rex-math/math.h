@@ -49,4 +49,6 @@ namespace rex::math
 	// TODO: add unittests
 	template <typename T> inline static T min(T a, T b) { return a < b ? a : b; }
 	template <typename T> inline static T max(T a, T b) { return b < a ? a : b; }
+
+	inline static int abs(int v) { return v < 0 ? -v : v; }
 }

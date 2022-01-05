@@ -23,6 +23,50 @@ namespace rex::raster
 		{0.93f, 0.54f, 0.46f, 1.0f}, // orange
 	};
 
+	template <typename T>
+	void
+	_swap(T& a, T& b)
+	{
+		T tmp = std::move(a);
+		a = std::move(b);
+		b = std::move(tmp);
+	}
+
+	// source: https://github.com/ssloy/tinyrenderer/wiki/Lesson-1:-Bresenham%E2%80%99s-Line-Drawing-Algorithm#timings-fifth-and-final-attempt
+	inline static void
+	_raster_line(Rex* self, math::V2i p0, math::V2i p1, math::Color_F32 color)
+	{
+		bool steep = false;
+		if (math::abs(p0.x - p1.x) < math::abs(p0.y - p1.y))
+		{
+			_swap(p0.x, p0.y);
+			_swap(p1.x, p1.y);
+			steep = true;
+		}
+
+		if (p0.x > p1.x)
+			_swap(p0, p1);
+
+		auto d = p1 - p0;
+		int derror2 = math::abs(d.y) * 2;
+		int error2 = 0;
+		int y = p0.y;
+		for (int x = p0.x; x <= p1.x; x++)
+		{
+			if (steep)
+				canvas_color(self->canvas, y, x) = color;
+			else
+				canvas_color(self->canvas, x, y) = color;
+
+			error2 += derror2;
+			if (error2 > d.x)
+			{
+				y += (p1.y > p0.y ? 1 : -1);
+				error2 -= d.x * 2;
+			}
+		}
+	}
+
 	inline static void
 	init(Rex_Api* api)
 	{
@@ -111,6 +155,12 @@ namespace rex::raster
 			v1_c.x = (v1_c.x + 1.0f) * canvas.width * 0.5f; v1_c.y = (v1_c.y + 1.0f) * canvas.height * 0.5f;
 			v2_c.x = (v2_c.x + 1.0f) * canvas.width * 0.5f; v2_c.y = (v2_c.y + 1.0f) * canvas.height * 0.5f;
 
+	#define WIREFRAME 1
+	#if WIREFRAME
+			_raster_line(self, {(int)v0_c.x, (int)v0_c.y}, {(int)v1_c.x, (int)v1_c.y}, {1.0f, 1.0f, 1.0f, 1.0f});
+			_raster_line(self, {(int)v1_c.x, (int)v1_c.y}, {(int)v2_c.x, (int)v2_c.y}, {1.0f, 1.0f, 1.0f, 1.0f});
+			_raster_line(self, {(int)v2_c.x, (int)v2_c.y}, {(int)v0_c.x, (int)v0_c.y}, {1.0f, 1.0f, 1.0f, 1.0f});
+	#else
 			math::V3 n0, n1, n2;
 			if (mesh.normal.count)
 			{
@@ -191,6 +241,7 @@ namespace rex::raster
 					}
 				}
 			}
+	#endif
 		}
 
 		// blit to screen
