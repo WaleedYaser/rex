@@ -227,20 +227,28 @@ namespace rex::raster
 			_raster_line(self, {(int)v2_c.x, (int)v2_c.y}, {(int)v0_c.x, (int)v0_c.y}, {1.0f, 1.0f, 1.0f, 1.0f});
 
 	#else
+			math::V3 n0, n1, n2;
+			if (mesh.normal.count)
+			{
+				// TODO: handle this propably
+				n0 = (math::V4{ mesh.normal[i0].x, mesh.normal[i0].y, mesh.normal[i0].z, 0.0f } * M).xyz;
+				n1 = (math::V4{ mesh.normal[i1].x, mesh.normal[i1].y, mesh.normal[i1].z, 0.0f } * M).xyz;
+				n2 = (math::V4{ mesh.normal[i2].x, mesh.normal[i2].y, mesh.normal[i2].z, 0.0f } * M).xyz;
+			}
+			else
+			{
+				n0 = math::cross(v2.xyz - v0.xyz, v1.xyz - v1.xyz);
+				n1 = n0; n2 = n1;
+			}
+			auto light_dir = math::V3{0.0f, 0.0f, -1.0f};
+			auto intensity = math::dot(math::normalize(n0), light_dir);
+
 			_raster_triangle(self,
 				{(int)v0_c.x, (int)v0_c.y},
 				{(int)v1_c.x, (int)v1_c.y},
 				{(int)v2_c.x, (int)v2_c.y},
-				{1.0f, 0.0f, 0.0f, 1.0f}
+				{intensity, 0.0f, 0.0f, 1.0f}
 			);
-			// math::V3 n0, n1, n2;
-			// if (mesh.normal.count)
-			// {
-			// 	// TODO: handle this propably
-			// 	n0 = (math::V4{ mesh.normal[i0].x, mesh.normal[i0].y, mesh.normal[i0].z, 0.0f } * M).xyz;
-			// 	n1 = (math::V4{ mesh.normal[i1].x, mesh.normal[i1].y, mesh.normal[i1].z, 0.0f } * M).xyz;
-			// 	n2 = (math::V4{ mesh.normal[i2].x, mesh.normal[i2].y, mesh.normal[i2].z, 0.0f } * M).xyz;
-			// }
 
 			// math::Color_F32 c0, c1, c2;
 			// if (mesh.color.count)
