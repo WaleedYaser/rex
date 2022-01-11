@@ -71,8 +71,8 @@ namespace rex::raster
 	_barycentric(math::V2i p0, math::V2i p1, math::V2i p2, math::V2i p)
 	{
 		auto u = math::cross(
-			math::V3{(float)p2.x - p0.x, (float)p1.x - p0.x, (float)p0.x - p.x},
-			math::V3{(float)p2.y - p0.y, (float)p1.y - p0.y, (float)p0.y - p.y}
+			math::V3{(float)p1.x - p0.x, (float)p2.x - p0.x, (float)p0.x - p.x},
+			math::V3{(float)p1.y - p0.y, (float)p2.y - p0.y, (float)p0.y - p.y}
 		);
 
 		if (math::abs(u.z) < 1)
@@ -84,7 +84,7 @@ namespace rex::raster
 	inline static void
 	_raster_triangle(Rex* self, math::V2i p0, math::V2i p1, math::V2i p2, math::Color_F32 color)
 	{
-	#define _LINE_SWEEPING 1
+	#define _LINE_SWEEPING 0
 	#if _LINE_SWEEPING
 		// skip degenerate triangles
 		if (p0.y == p1.y && p0.y == p2.y) return;
@@ -115,7 +115,7 @@ namespace rex::raster
 		}
 	#else
 		auto bb_min = math::max(math::min(math::min(p0, p1), p2), math::V2i{0, 0});
-		auto bb_max = math::min(math::max(math::max(p1, p1), p2), math::V2i{self->canvas.width - 1, self->canvas.height - 1});
+		auto bb_max = math::min(math::max(math::max(p0, p1), p2), math::V2i{self->canvas.width - 1, self->canvas.height - 1});
 
 		math::V2i p = {};
 		for (p.y = bb_min.y; p.y <= bb_max.y; ++p.y)
