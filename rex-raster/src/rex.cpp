@@ -68,21 +68,21 @@ namespace rex::raster
 	}
 
 	inline static math::V3
-	_barycentric(math::V2i p0, math::V2i p1, math::V2i p2, math::V2i p)
+	_barycentric(math::V2 p0, math::V2 p1, math::V2 p2, math::V2 p)
 	{
 		auto u = math::cross(
-			math::V3{(float)p1.x - p0.x, (float)p2.x - p0.x, (float)p0.x - p.x},
-			math::V3{(float)p1.y - p0.y, (float)p2.y - p0.y, (float)p0.y - p.y}
+			math::V3{p2.x - p0.x, p1.x - p0.x, p0.x - p.x},
+			math::V3{p2.y - p0.y, p1.y - p0.y, p0.y - p.y}
 		);
 
-		if (math::abs(u.z) < 1)
+		if (math::abs(u.z) <= 1e-2)
 			return {-1.0f, 1.0f, 1.0f};
 
 		return {1.0f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z};
 	}
 
 	inline static void
-	_raster_triangle(Rex* self, math::V2i p0, math::V2i p1, math::V2i p2, math::Color_F32 color)
+	_raster_triangle(Rex* self, math::V3 p0, math::V3 p1, math::V3 p2, math::Color_F32 color)
 	{
 	#define _LINE_SWEEPING 0
 	#if _LINE_SWEEPING
@@ -94,7 +94,7 @@ namespace rex::raster
 		if (p0.y > p2.y) _swap(p0, p2);
 		if (p1.y > p2.y) _swap(p1, p2);
 
-		for (int y = p0.y; y <= p2.y; ++y)
+		for (float y = p0.y; y <= p2.y; ++y)
 		{
 			// top half or bottom half
 			auto bottom_half = y > p1.y || p0.y == p1.y;
@@ -103,30 +103,35 @@ namespace rex::raster
 
 			// short line
 			auto t0 = (float)(y - _p0.y) / (_p1.y - _p0.y);
-			auto a = _p0 + math::V2i{(int)((_p1.x - _p0.x) * t0), (int)((_p1.y - _p0.y) * t0)};
+			auto a = _p0 + (_p1 - _p0) * t0;
 
 			// long line
 			auto t1 = (float)(y - p0.y) / (p2.y - p0.y);
-			auto b = p0 + math::V2i{(int)((p2.x - p0.x) * t1), (int)((p2.y - p0.y) * t1)};
+			auto b = p0 + (p2 - p0) * t1;
 
 			if (a.x > b.x) _swap(a, b);
-			for (int x = a.x; x <= b.x; ++x)
-				canvas_color(self->canvas, x, y) = color;
+			for (float x = a.x; x <= b.x; ++x)
+				canvas_color(self->canvas, (int)x, (int)y) = color;
 		}
 	#else
-		auto bb_min = math::max(math::min(math::min(p0, p1), p2), math::V2i{0, 0});
-		auto bb_max = math::min(math::max(math::max(p0, p1), p2), math::V2i{self->canvas.width - 1, self->canvas.height - 1});
+		auto bb_min = math::max(math::min(math::min(p0.xy, p1.xy), p2.xy), math::V2{0, 0});
+		auto bb_max = math::min(math::max(math::max(p0.xy, p1.xy), p2.xy), math::V2{(float)self->canvas.width - 1, (float)self->canvas.height - 1});
 
-		math::V2i p = {};
+		math::V2 p = {};
 		for (p.y = bb_min.y; p.y <= bb_max.y; ++p.y)
 		{
 			for (p.x = bb_min.x; p.x <= bb_max.x; ++p.x)
 			{
-				auto w = _barycentric(p0, p1, p2, p);
+				auto w = _barycentric(p0.xy, p1.xy, p2.xy, p);
 				if (w.x < 0 || w.y < 0 || w.z < 0)
 					continue;
 
-				canvas_color(self->canvas, p.x, p.y) = color;
+				auto z = w[0] * p0.z + w[1] * p1.z + w[2] * p2.z;
+				if (canvas_depth(self->canvas, (int)p.x, (int)p.y) < z)
+				{
+					canvas_color(self->canvas, (int)p.x, (int)p.y) = color;
+					canvas_depth(self->canvas, (int)p.x, (int)p.y) = z;
+				}
 			}
 		}
 	#endif
@@ -176,7 +181,7 @@ namespace rex::raster
 
 		auto M =
 			math::mat4_translation(-mesh.bb_min - (mesh.bb_max - mesh.bb_min) * 0.5f) *
-			math::mat4_euler((float)math::PI_DIV_2, 0.0f, 0.0f) *
+			math::mat4_euler((float)-math::PI_DIV_2, 0.0f, 0.0f) *
 			math::mat4_euler(0.0f, t, 0.0f) *
 			math::mat4_translation(0.0f, 0.0f, -distance);
 
@@ -216,9 +221,14 @@ namespace rex::raster
 			// auto v1_s = v1_c * viewport;
 			// auto v2_s = v2_c * viewport;
 
-			v0_c.x = (v0_c.x + 1.0f) * canvas.width * 0.5f; v0_c.y = (v0_c.y + 1.0f) * canvas.height * 0.5f;
-			v1_c.x = (v1_c.x + 1.0f) * canvas.width * 0.5f; v1_c.y = (v1_c.y + 1.0f) * canvas.height * 0.5f;
-			v2_c.x = (v2_c.x + 1.0f) * canvas.width * 0.5f; v2_c.y = (v2_c.y + 1.0f) * canvas.height * 0.5f;
+			v0_c.x = (v0_c.x + 1.0f) * canvas.width * 0.5f + 0.5f;
+			v0_c.y = (1.0f - v0_c.y) * canvas.height * 0.5f + 0.5f;
+
+			v1_c.x = (v1_c.x + 1.0f) * canvas.width * 0.5f + 0.5f;
+			v1_c.y = (1.0f - v1_c.y) * canvas.height * 0.5f + 0.5f;
+
+			v2_c.x = (v2_c.x + 1.0f) * canvas.width * 0.5f + 0.5f;
+			v2_c.y = (1.0f - v2_c.y) * canvas.height * 0.5f + 0.5f;
 
 	#define WIREFRAME 0
 	#if WIREFRAME
@@ -237,16 +247,16 @@ namespace rex::raster
 			}
 			else
 			{
-				n0 = math::cross(v2.xyz - v0.xyz, v1.xyz - v1.xyz);
+				n0 = math::cross(v2.xyz - v0.xyz, v1.xyz - v0.xyz);
 				n1 = n0; n2 = n1;
 			}
-			auto light_dir = math::V3{0.0f, 0.0f, -1.0f};
+			auto light_dir = math::V3{0.0f, 0.0f, 1.0f};
 			auto intensity = math::dot(math::normalize(n0), light_dir);
 
 			_raster_triangle(self,
-				{(int)v0_c.x, (int)v0_c.y},
-				{(int)v1_c.x, (int)v1_c.y},
-				{(int)v2_c.x, (int)v2_c.y},
+				{v0_c.x, v0_c.y, v0.z},
+				{v1_c.x, v1_c.y, v1.z},
+				{v2_c.x, v2_c.y, v2.z},
 				{intensity, 0.0f, 0.0f, 1.0f}
 			);
 

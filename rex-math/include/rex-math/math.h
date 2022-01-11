@@ -52,4 +52,5 @@ namespace rex::math
 
 	inline static int abs(int v) { return v < 0 ? -v : v; }
 	inline static float abs(float v) { return v < 0 ? -v : v; }
+	inline static double abs(double v) { return v < 0 ? -v : v; }
 }

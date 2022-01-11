@@ -112,21 +112,21 @@ namespace rex::math
 	}
 
 	template <typename T>
-	inline static float
+	inline static T
 	dot(const Vec3<T> &a, const Vec3<T> &b)
 	{
 		return (a.x * b.x + a.y * b.y + a.z * b.z);
 	}
 
 	template <typename T>
-	inline static float
+	inline static T
 	norm(const Vec3<T> &v)
 	{
 		return sqrt(dot(v, v));
 	}
 
 	template <typename T>
-	inline static float
+	inline static T
 	length(const Vec3<T> &v)
 	{
 		return norm(v);
