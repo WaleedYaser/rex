@@ -1,5 +1,6 @@
 #include "rex-raster/exports.h"
 #include "rex-raster/rex.h"
+#include "rex-raster/stb_image.h"
 
 #include <rex-core/str.h>
 #include <rex-core/defer.h>
@@ -82,7 +83,7 @@ namespace rex::raster
 	}
 
 	inline static void
-	_raster_triangle(Rex* self, math::V3 p0, math::V3 p1, math::V3 p2, math::Color_F32 color)
+	_raster_triangle(Rex* self, math::V3 p0, math::V3 p1, math::V3 p2, math::V2 uv0, math::V2 uv1, math::V2 uv2, float intensity)
 	{
 	#define _LINE_SWEEPING 0
 	#if _LINE_SWEEPING
@@ -117,6 +118,10 @@ namespace rex::raster
 		auto bb_min = math::max(math::min(math::min(p0.xy, p1.xy), p2.xy), math::V2{0, 0});
 		auto bb_max = math::min(math::max(math::max(p0.xy, p1.xy), p2.xy), math::V2{(float)self->canvas.width - 1, (float)self->canvas.height - 1});
 
+		// round
+		bb_min = {(float)(int)bb_min.x, (float)(int)bb_min.y};
+		bb_max = {(float)(int)bb_max.x, (float)(int)bb_max.y};
+
 		math::V2 p = {};
 		for (p.y = bb_min.y; p.y <= bb_max.y; ++p.y)
 		{
@@ -129,7 +134,9 @@ namespace rex::raster
 				auto z = w[0] * p0.z + w[1] * p1.z + w[2] * p2.z;
 				if (canvas_depth(self->canvas, (int)p.x, (int)p.y) < z)
 				{
-					canvas_color(self->canvas, (int)p.x, (int)p.y) = color;
+					auto uv = w[0] * uv0 + w[1] * uv1 + w[2] * uv2;
+					auto color = canvas_color(self->texture, (int)(uv.x * self->texture.width), (int)((1.0f - uv.y) * self->texture.height));
+					canvas_color(self->canvas, (int)p.x, (int)p.y) = color * intensity;
 					canvas_depth(self->canvas, (int)p.x, (int)p.y) = z;
 				}
 			}
@@ -144,7 +151,25 @@ namespace rex::raster
 
 		self->canvas = canvas_init();
 
-		self->mesh = mesh_from_stl(rc::str_fmt(rc::frame_allocator(), "%s/data/dino.stl", rc::app_directory()).ptr);
+		// self->mesh = mesh_from_stl(rc::str_fmt(rc::frame_allocator(), "%s/data/dino.stl", rc::app_directory()).ptr);
+		self->mesh = mesh_from_obj(rc::str_fmt(rc::frame_allocator(), "%s/data/african_head.obj", rc::app_directory()).ptr);
+
+		{
+			int width, height, channels = 0;
+			auto data = stbi_load(rc::str_fmt(rc::frame_allocator(), "%s/data/african_head_diffuse.tga", rc::app_directory()).ptr, &width, &height, &channels, 4);
+			self->texture = canvas_init();
+			canvas_resize(self->texture, width, height);
+			for (int y = 0; y < height; ++y)
+			{
+				for (int x = 0; x < width; ++x)
+				{
+					canvas_color(self->texture, x, y).r = data[(x + y * width) * 4 + 0] / 255.0f;
+					canvas_color(self->texture, x, y).g = data[(x + y * width) * 4 + 1] / 255.0f;
+					canvas_color(self->texture, x, y).b = data[(x + y * width) * 4 + 2] / 255.0f;
+					canvas_color(self->texture, x, y).a = data[(x + y * width) * 4 + 3] / 255.0f;
+				}
+			}
+		}
 	}
 
 	inline static void
@@ -152,6 +177,7 @@ namespace rex::raster
 	{
 		auto self = (Rex*)api;
 
+		canvas_deinit(self->texture);
 		canvas_deinit(self->canvas);
 		mesh_deinit(self->mesh);
 	}
@@ -181,7 +207,7 @@ namespace rex::raster
 
 		auto M =
 			math::mat4_translation(-mesh.bb_min - (mesh.bb_max - mesh.bb_min) * 0.5f) *
-			math::mat4_euler((float)-math::PI_DIV_2, 0.0f, 0.0f) *
+			// math::mat4_euler((float)-math::PI_DIV_2, 0.0f, 0.0f) *
 			math::mat4_euler(0.0f, t, 0.0f) *
 			math::mat4_translation(0.0f, 0.0f, -distance);
 
@@ -238,99 +264,32 @@ namespace rex::raster
 
 	#else
 			math::V3 n0, n1, n2;
-			if (mesh.normal.count)
-			{
-				// TODO: handle this propably
-				n0 = (math::V4{ mesh.normal[i0].x, mesh.normal[i0].y, mesh.normal[i0].z, 0.0f } * M).xyz;
-				n1 = (math::V4{ mesh.normal[i1].x, mesh.normal[i1].y, mesh.normal[i1].z, 0.0f } * M).xyz;
-				n2 = (math::V4{ mesh.normal[i2].x, mesh.normal[i2].y, mesh.normal[i2].z, 0.0f } * M).xyz;
-			}
-			else
+			// if (mesh.normal.count)
+			// {
+			// 	// TODO: handle this propably
+			// 	n0 = (math::V4{ mesh.normal[i0].x, mesh.normal[i0].y, mesh.normal[i0].z, 0.0f } * M).xyz;
+			// 	n1 = (math::V4{ mesh.normal[i1].x, mesh.normal[i1].y, mesh.normal[i1].z, 0.0f } * M).xyz;
+			// 	n2 = (math::V4{ mesh.normal[i2].x, mesh.normal[i2].y, mesh.normal[i2].z, 0.0f } * M).xyz;
+			// }
+			// else
 			{
 				n0 = math::cross(v2.xyz - v0.xyz, v1.xyz - v0.xyz);
 				n1 = n0; n2 = n1;
 			}
-			auto light_dir = math::V3{0.0f, 0.0f, 1.0f};
+			auto light_dir = math::V3{0.0f, 0.0f, -1.0f};
 			auto intensity = math::dot(math::normalize(n0), light_dir);
+
+			auto uv0 = mesh.uv[mesh.uv_indices[i+0]];
+			auto uv1 = mesh.uv[mesh.uv_indices[i+1]];
+			auto uv2 = mesh.uv[mesh.uv_indices[i+2]];
 
 			_raster_triangle(self,
 				{v0_c.x, v0_c.y, v0.z},
 				{v1_c.x, v1_c.y, v1.z},
 				{v2_c.x, v2_c.y, v2.z},
-				{intensity, 0.0f, 0.0f, 1.0f}
+				uv0, uv1, uv2,
+				intensity
 			);
-
-			// math::Color_F32 c0, c1, c2;
-			// if (mesh.color.count)
-			// {
-			// 	c0 = mesh.color[i0];
-			// 	c1 = mesh.color[i1];
-			// 	c2 = mesh.color[i2];
-			// }
-
-			// auto a = v1_c.xy - v0_c.xy;
-			// auto b = v2_c.xy - v1_c.xy;
-			// auto c = v0_c.xy - v2_c.xy;
-
-			// float area = -math::cross(a, b);
-
-			// // TODO: back-face culling
-
-			// auto bb_min = math::min(math::min(v0_c.xy, v1_c.xy), v2_c.xy);
-			// auto bb_max = math::max(math::max(v0_c.xy, v1_c.xy), v2_c.xy);
-
-			// int min_x = (int)math::max(0.0f, bb_min.x);
-			// int max_x = (int)math::min((float)(canvas.width - 1), bb_max.x);
-
-			// int min_y = (int)math::max(0.0f, bb_min.y);
-			// int max_y = (int)math::min((float)(canvas.height - 1), bb_max.y);
-
-			// for (int y = min_y; y <= max_y; ++y)
-			// {
-			// 	for (int x = min_x; x <= max_x; ++x)
-			// 	{
-			// 		auto p = math::V2{x + 0.5f, y + 0.5f};
-
-			// 		float w0 = math::cross(p - v1_c.xy, b) / area;
-			// 		float w1 = math::cross(p - v2_c.xy, c) / area;
-			// 		float w2 = math::cross(p - v0_c.xy, a) / area;
-
-			// 		// perspective correction
-			// 		float z = 1.0f / (w0 * (1.0f / v0.z) + w1 * (1.0f / v1.z) + w2 * (1.0f / v2.z));
-			// 		w0 *= (z / v0.z);
-			// 		w1 *= (z / v1.z);
-			// 		w2 *= (z / v2.z);
-
-			// 		if (w0 > 0 && w1 > 0 && w2 > 0)
-			// 		{
-			// 			float depth = w0 * v0.z + w1 * v1.z + w2 * v2.z;
-			// 			if (depth > canvas_depth(canvas, x, y))
-			// 			{
-			// 				math::Color_F32 color = (mesh.color.count ? w0 * c0 + w1 * c1 + w2 * c2 : color_palette[4]);
-
-			// 				if (mesh.normal.count)
-			// 				{
-			// 					math::V3 light_pos = {};
-			// 					math::Color_F32 light_color = {1.0f, 1.0f, 1.0f, 1.0f};
-
-			// 					// very basic phong lighting
-			// 					auto frag_pos = v0.xyz * w0 + v1.xyz * w1 + v2.xyz * w2;
-			// 					auto light_dir = math::normalize(light_pos - frag_pos);
-			// 					auto diff = math::max(math::dot(n0, light_dir), 0.0f);
-			// 					auto diffuse = diff * light_color.rgb;
-
-			// 					canvas_color(canvas, x, y).rgb = math::min(diffuse * color.rgb, {1.0f, 1.0f, 1.0f});
-			// 					canvas_color(canvas, x, y).a   = color.a;
-			// 				}
-			// 				else
-			// 				{
-			// 					canvas_color(canvas, x, y) = color;
-			// 				}
-			// 				canvas_depth(canvas, x, y) = depth;
-			// 			}
-			// 		}
-			// 	}
-			// }
 	#endif
 		}
 

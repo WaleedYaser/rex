@@ -14,6 +14,7 @@ namespace rex::raster
 		rc::Vec<math::V2> uv;
 		rc::Vec<math::Color_F32> color;
 		rc::Vec<unsigned> indices;
+		rc::Vec<unsigned> uv_indices;
 
 		math::V3 bb_min;
 		math::V3 bb_max;

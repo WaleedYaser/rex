@@ -49,6 +49,7 @@ namespace rex::raster
 		rc::vec_deinit(self.color);
 		rc::vec_deinit(self.uv);
 		rc::vec_deinit(self.indices);
+		rc::vec_deinit(self.uv_indices);
 		self = {};
 	}
 
@@ -323,6 +324,7 @@ namespace rex::raster
 		self.uv = rc::vec_init<math::V2>();
 		self.normal = rc::vec_init<math::V3>();
 		self.indices = rc::vec_init<unsigned>();
+		self.uv_indices = rc::vec_init<unsigned>();
 
 		auto content = rc::file_read(path, rc::frame_allocator());
 		if (content.ptr == nullptr)
@@ -374,9 +376,14 @@ namespace rex::raster
 			{
 				for (int i = 1; i < splits.count; ++i)
 				{
-					auto idx_str = rc::str_split(splits[i], '/', rc::frame_allocator())[0];
-					unsigned idx = (unsigned)rc::str_to_int(idx_str, &result) - 1; rex_assert(result);
+					auto indices = rc::str_split(splits[i], '/', rc::frame_allocator());
+					unsigned idx = (unsigned)rc::str_to_int(indices[0], &result) - 1; rex_assert(result);
 					rc::vec_push(self.indices, idx);
+					if (indices.count > 1)
+					{
+						unsigned uv_idx = (unsigned)rc::str_to_int(indices[1], &result) - 1; rex_assert(result);
+						rc::vec_push(self.uv_indices, uv_idx);
+					}
 				}
 			}
 			else

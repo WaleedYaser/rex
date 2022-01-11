@@ -11,6 +11,8 @@ namespace rex::raster
 	{
 		Canvas canvas;
 		Mesh mesh;
+		// TODO: use image instead of canvas
+		Canvas texture;
 		math::Color_F32 mesh_color;
 	};
 }
