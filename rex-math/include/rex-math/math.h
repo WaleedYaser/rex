@@ -51,4 +51,5 @@ namespace rex::math
 	template <typename T> inline static T max(T a, T b) { return b < a ? a : b; }
 
 	inline static int abs(int v) { return v < 0 ? -v : v; }
+	inline static float abs(float v) { return v < 0 ? -v : v; }
 }
