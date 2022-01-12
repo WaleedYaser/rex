@@ -9,6 +9,7 @@ generate_export_header(rex-raster EXPORT_FILE_NAME ${CMAKE_CURRENT_SOURCE_DIR}/i
 
 target_sources(rex-raster PRIVATE
 	"include/rex-raster/exports.h"
+	"include/rex-raster/camera.h"
 	"include/rex-raster/canvas.h"
 	"include/rex-raster/mesh.h"
 	"include/rex-raster/gltf.h"

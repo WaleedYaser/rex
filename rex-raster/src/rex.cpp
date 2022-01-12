@@ -150,6 +150,7 @@ namespace rex::raster
 		auto self = (Rex*)api;
 
 		self->canvas = canvas_init();
+		self->cam = camera_init();
 
 		// self->mesh = mesh_from_stl(rc::str_fmt(rc::frame_allocator(), "%s/data/dino.stl", rc::app_directory()).ptr);
 		self->mesh = mesh_from_obj(rc::str_fmt(rc::frame_allocator(), "%s/data/african_head.obj", rc::app_directory()).ptr);
@@ -197,22 +198,21 @@ namespace rex::raster
 		canvas_resize(canvas, self->screen_width, self->screen_height);
 		canvas_clear(canvas, {0.1f, 0.1f, 0.1f, 1.0f}, 1.0f);
 
-		float fov = (float)(30.0 * math::TO_RADIAN);
-		float aspect = (float)canvas.width / (float)canvas.height;
+		camera_viewport_update(self->cam, canvas.width, canvas.height);
+		camera_input_update(self->cam, self->input, self->dt);
+		self->cam.kind = Camera::PROJECTION_PERSPECTIVE;
 
 		float max_length = math::length(mesh.bb_max - mesh.bb_min);
-		float distance_h = max_length / math::tan(fov / 2);
-		float distance_w = max_length / math::tan(fov * aspect / 2);
+		float distance_h = max_length / math::tan(self->cam.fovy / 2);
+		float distance_w = max_length / math::tan(self->cam.fovy * self->cam.aspect / 2);
 		float distance   = math::max(distance_w, distance_h);
 
-		auto M =
-			math::mat4_translation(-mesh.bb_min - (mesh.bb_max - mesh.bb_min) * 0.5f) *
-			// math::mat4_euler((float)-math::PI_DIV_2, 0.0f, 0.0f) *
-			math::mat4_euler(0.0f, t, 0.0f) *
-			math::mat4_translation(0.0f, 0.0f, -distance);
+		self->cam.distance = distance;
 
-		auto V = math::mat4_identity<float>();
-		auto P = math::mat4_perspective(fov, (float)canvas.width / (float)canvas.height, 0.1f, distance + max_length);
+		auto M = math::mat4_translation(-mesh.bb_min - (mesh.bb_max - mesh.bb_min) * 0.5f);
+
+		auto V = camera_view_mat(self->cam);
+		auto P = camera_proj_mat(self->cam);
 		auto viewport = math::mat4_viewport<float>(0, 0, (float)canvas.width, (float)canvas.height);
 
 		auto count = (mesh.indices.count ? mesh.indices.count : mesh.position.count);
