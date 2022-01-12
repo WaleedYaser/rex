@@ -115,6 +115,14 @@ namespace rex::math
 	}
 
 	template <typename T>
+	inline static Vec4<T>&
+	operator*=(Vec4<T> &v, const Mat4<T> &M)
+	{
+		v = v * M;
+		return v;
+	}
+
+	template <typename T>
 	inline static Mat4<T>
 	operator*(const Mat4<T> &A, const Mat4<T> &B)
 	{
@@ -466,12 +474,15 @@ namespace rex::math
 	// TODO: add unittets
 	template <typename T>
 	inline static Mat4<T>
-	mat4_viewport(T width, T height)
+	mat4_viewport(T x, T y, T width, T height)
 	{
-		// TODO:
-		return mat4_identity<T>();
+		return {
+			width / 2    , 0              , 0, 0,
+			0            , -height / 2    , 0, 0,
+			0            , 0              , 1, 0,
+			x + width / 2, y + height / 2 , 0, 1,
+		};
 	}
-
 
 	template <typename T>
 	inline static Mat4<T>

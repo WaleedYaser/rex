@@ -132,7 +132,7 @@ namespace rex::raster
 					continue;
 
 				auto z = w[0] * p0.z + w[1] * p1.z + w[2] * p2.z;
-				if (canvas_depth(self->canvas, (int)p.x, (int)p.y) < z)
+				if (canvas_depth(self->canvas, (int)p.x, (int)p.y) > z)
 				{
 					auto uv = w[0] * uv0 + w[1] * uv1 + w[2] * uv2;
 					auto color = canvas_color(self->texture, (int)(uv.x * self->texture.width), (int)((1.0f - uv.y) * self->texture.height));
@@ -195,7 +195,7 @@ namespace rex::raster
 		static float t = 0;
 
 		canvas_resize(canvas, self->screen_width, self->screen_height);
-		canvas_clear(canvas, {0.1f, 0.1f, 0.1f, 1.0f}, -FLT_MAX);
+		canvas_clear(canvas, {0.1f, 0.1f, 0.1f, 1.0f}, 1.0f);
 
 		float fov = (float)(30.0 * math::TO_RADIAN);
 		float aspect = (float)canvas.width / (float)canvas.height;
@@ -211,7 +211,9 @@ namespace rex::raster
 			math::mat4_euler(0.0f, t, 0.0f) *
 			math::mat4_translation(0.0f, 0.0f, -distance);
 
+		auto V = math::mat4_identity<float>();
 		auto P = math::mat4_perspective(fov, (float)canvas.width / (float)canvas.height, 0.1f, distance + max_length);
+		auto viewport = math::mat4_viewport<float>(0, 0, (float)canvas.width, (float)canvas.height);
 
 		auto count = (mesh.indices.count ? mesh.indices.count : mesh.position.count);
 		for (int i = 0; i < count; i += 3)
@@ -234,27 +236,17 @@ namespace rex::raster
 			auto p1 = mesh.position[i1];
 			auto p2 = mesh.position[i2];
 
-			auto v0 = math::V4{p0.x, p0.y, p0.z, 1.0f} * M;
-			auto v1 = math::V4{p1.x, p1.y, p1.z, 1.0f} * M;
-			auto v2 = math::V4{p2.x, p2.y, p2.z, 1.0f} * M;
+			auto v0 = math::V4{p0.x, p0.y, p0.z, 1.0f} * M * V * P;
+			auto v1 = math::V4{p1.x, p1.y, p1.z, 1.0f} * M * V * P;
+			auto v2 = math::V4{p2.x, p2.y, p2.z, 1.0f} * M * V * P;
 
-			auto v0_c = v0 * P; v0_c /= v0_c.w;
-			auto v1_c = v1 * P; v1_c /= v1_c.w;
-			auto v2_c = v2 * P; v2_c /= v2_c.w;
+			v0 /= v0.w;
+			v1 /= v1.w;
+			v2 /= v2.w;
 
-			// TODO: use viewport matrix
-			// auto v0_s = v0_c * viewport;
-			// auto v1_s = v1_c * viewport;
-			// auto v2_s = v2_c * viewport;
-
-			v0_c.x = (v0_c.x + 1.0f) * canvas.width * 0.5f + 0.5f;
-			v0_c.y = (1.0f - v0_c.y) * canvas.height * 0.5f + 0.5f;
-
-			v1_c.x = (v1_c.x + 1.0f) * canvas.width * 0.5f + 0.5f;
-			v1_c.y = (1.0f - v1_c.y) * canvas.height * 0.5f + 0.5f;
-
-			v2_c.x = (v2_c.x + 1.0f) * canvas.width * 0.5f + 0.5f;
-			v2_c.y = (1.0f - v2_c.y) * canvas.height * 0.5f + 0.5f;
+			v0 *= viewport;
+			v1 *= viewport;
+			v2 *= viewport;
 
 	#define WIREFRAME 0
 	#if WIREFRAME
@@ -264,16 +256,8 @@ namespace rex::raster
 
 	#else
 			math::V3 n0, n1, n2;
-			// if (mesh.normal.count)
-			// {
-			// 	// TODO: handle this propably
-			// 	n0 = (math::V4{ mesh.normal[i0].x, mesh.normal[i0].y, mesh.normal[i0].z, 0.0f } * M).xyz;
-			// 	n1 = (math::V4{ mesh.normal[i1].x, mesh.normal[i1].y, mesh.normal[i1].z, 0.0f } * M).xyz;
-			// 	n2 = (math::V4{ mesh.normal[i2].x, mesh.normal[i2].y, mesh.normal[i2].z, 0.0f } * M).xyz;
-			// }
-			// else
 			{
-				n0 = math::cross(v2.xyz - v0.xyz, v1.xyz - v0.xyz);
+				n0 = -math::cross(v2.xyz - v0.xyz, v1.xyz - v0.xyz);
 				n1 = n0; n2 = n1;
 			}
 			auto light_dir = math::V3{0.0f, 0.0f, -1.0f};
@@ -283,10 +267,7 @@ namespace rex::raster
 			auto uv1 = mesh.uv[mesh.uv_indices[i+1]];
 			auto uv2 = mesh.uv[mesh.uv_indices[i+2]];
 
-			_raster_triangle(self,
-				{v0_c.x, v0_c.y, v0.z},
-				{v1_c.x, v1_c.y, v1.z},
-				{v2_c.x, v2_c.y, v2.z},
+			_raster_triangle(self, v0.xyz, v1.xyz, v2.xyz,
 				uv0, uv1, uv2,
 				intensity
 			);
