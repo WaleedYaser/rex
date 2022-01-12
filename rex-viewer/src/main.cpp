@@ -18,6 +18,7 @@ _rc_mouse_button_to_rex_key(rc::MOUSE_BUTTON button)
 		case rc::MOUSE_BUTTON_LEFT: return REX_KEY_MOUSE_LEFT;
 		case rc::MOUSE_BUTTON_RIGHT: return REX_KEY_MOUSE_RIGHT;
 		case rc::MOUSE_BUTTON_MIDDLE: return REX_KEY_MOUSE_MIDDLE;
+		default: return REX_KEY_NONE;
 	}
 	return REX_KEY_NONE;
 }
@@ -66,6 +67,7 @@ _rc_key_to_rex_key(rc::KEY key)
 		case rc::KEY_SPACE: return REX_KEY_SPACE;
 		case rc::KEY_ENTER: return REX_KEY_ENTER;
 		case rc::KEY_ESCAPE: return REX_KEY_ESCAPE;
+		default: return REX_KEY_NONE;
 	}
 	return REX_KEY_NONE;
 }
@@ -142,6 +144,9 @@ _rex_frame(double, void* user_data)
 				rex->input.keys[key].release_count++;
 				break;
 			}
+			default:
+				// do nothing
+				break;
 		}
 	}
 

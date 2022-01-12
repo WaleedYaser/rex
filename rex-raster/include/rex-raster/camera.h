@@ -59,13 +59,12 @@ namespace rex
 	{
 		auto rotation = math::mat3_euler(self.rotation);
 
-		auto forward = math::V3{0.0f, 0.0f, 1.0f} * rotation;
 		auto up = math::V3{0.0f, 1.0f, 0.0f} * rotation;
 		auto right = math::V3{1.0f, 0.0f, 0.0f} * rotation;
 
 		// ban
 		static constexpr float SENSITIVITY = 100.0f;
-		if (input.keys[REX_KEY_MOUSE_RIGHT].down)
+		if (input.keys[REX_KEY_MOUSE_RIGHT].down || input.keys[REX_KEY_MOUSE_MIDDLE].down)
 		{
 			auto dx = input.mouse_dx * dt * SENSITIVITY / self.width;
 			auto dy = -input.mouse_dy * dt * SENSITIVITY / self.width;
@@ -108,7 +107,6 @@ namespace rex
 
 		auto forward = math::V3{0.0f, 0.0f, 1.0f} * rotation;
 		auto up = math::V3{0.0f, 1.0f, 0.0f} * rotation;
-		auto right = math::V3{1.0f, 0.0f, 0.0f} * rotation;
 
 		return math::mat4_look_at(forward * self.distance * self.scale + self.position, self.position, up);
 	}

@@ -42,45 +42,45 @@ jobs:
       working-directory: build
       run: ctest -C ${{ matrix.build-variant }}
 
-  # build-web:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - uses: actions/checkout@v2
-  #     with:
-  #       submodules: true
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
 
-  #   - name: Setup emsdk
-  #     uses: mymindstorm/setup-emsdk@v11
-  #     with:
-  #       version: 3.0.0
-  #       actions-cache-folder: 'emsdk-cache'
+    - name: Setup emsdk
+      uses: mymindstorm/setup-emsdk@v11
+      with:
+        version: 3.0.0
+        actions-cache-folder: 'emsdk-cache'
 
-  #   - name: Configure CMake
-  #     run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
 
-  #   - name: Build
-  #     run: cmake --build build  -j
+    - name: Build
+      run: cmake --build build  -j
 
-  #   - uses: actions/setup-node@v2
-  #     with:
-  #       node-version: '14'
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '14'
 
-  #   - name: Test
-  #     run: node rex-utests.js
-  #     working-directory: build/bin
+    - name: Test
+      run: node rex-utests.js
+      working-directory: build/bin
 
-  #   - name: Install
-  #     run: cmake --install build --prefix rex-wasm
+    - name: Install
+      run: cmake --install build --prefix rex-wasm
 
-  #   - name: Deploy
-  #     # TODO: deploy on merge only
-  #     # if: github.event.pull_request.merged == 'true'
-  #     uses: cpina/github-action-push-to-another-repository@v1.3
-  #     env:
-  #       API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
-  #     with:
-  #       source-directory: 'rex-wasm'
-  #       destination-github-username: 'WaleedYaser'
-  #       destination-repository-name: 'rex-wasm'
-  #       user-email: 'waleedyaser95@gmail.com'
-  #       target-branch: 'main'
+    - name: Deploy
+      # TODO: deploy on merge only
+      # if: github.event.pull_request.merged == 'true'
+      uses: cpina/github-action-push-to-another-repository@v1.3
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'rex-wasm'
+        destination-github-username: 'WaleedYaser'
+        destination-repository-name: 'rex-wasm'
+        user-email: 'waleedyaser95@gmail.com'
+        target-branch: 'main'

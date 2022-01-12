@@ -113,7 +113,7 @@ TEST_CASE("[rex-core]: str")
 	{
 		const char* c_str = "Hello, World!";
 
-		auto s1 = rc::str_from("Hello, World!");
+		auto s1 = rc::str_from(c_str);
 		rex_defer(rc::str_deinit(s1));
 
 		auto s2 = rc::str_copy(s1);
@@ -131,7 +131,7 @@ TEST_CASE("[rex-core]: str")
 	{
 		const char* c_str = "Hello, World!";
 
-		auto s1 = rc::str_from("Hello, World!");
+		auto s1 = rc::str_from(c_str);
 		rex_defer(rc::str_deinit(s1));
 
 		auto s2 = rc::str_copy(s1, rc::frame_allocator());
@@ -149,7 +149,7 @@ TEST_CASE("[rex-core]: str")
 	{
 		const char* c_str = "Hello, World!";
 
-		auto s1 = rc::str_from("Hello, World!");
+		auto s1 = rc::str_from(c_str);
 		rex_defer(destroy(s1));
 
 		auto s2 = clone(s1);
@@ -167,7 +167,7 @@ TEST_CASE("[rex-core]: str")
 	{
 		const char* c_str = "Hello, World!";
 
-		auto s1 = rc::str_from("Hello, World!");
+		auto s1 = rc::str_from(c_str);
 		rex_defer(destroy(s1));
 
 		auto s2 = clone(s1, rc::frame_allocator());

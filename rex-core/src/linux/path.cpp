@@ -28,8 +28,6 @@ namespace rc
 				if (*iter == '/')
 					last_slash = ++iter;
 			*last_slash = '\0';
-
-			rex_log_info(buffer);
 		}
 		return buffer;
 	}

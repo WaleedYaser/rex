@@ -374,7 +374,7 @@ namespace rex::raster
 			}
 			else if (splits[0] == "f")
 			{
-				for (int i = 1; i < splits.count; ++i)
+				for (rc::sz i = 1; i < splits.count; ++i)
 				{
 					auto indices = rc::str_split(splits[i], '/', rc::frame_allocator());
 					unsigned idx = (unsigned)rc::str_to_int(indices[0], &result) - 1; rex_assert(result);

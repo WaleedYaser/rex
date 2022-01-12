@@ -5,20 +5,43 @@
 
 struct Foo
 {
+	rc::Allocator allocator;
 	rc::i32* ptr;
 	rc::sz count;
 };
 
 inline static Foo
+foo_new(rc::sz count, rc::Allocator allocator = rc::rex_allocator())
+{
+	Foo self = {};
+	self.ptr = rex_alloc_zeroed_N_from(allocator, rc::i32, count);
+	self.count = count;
+	self.allocator = allocator;
+	return self;
+}
+
+inline static void
+foo_free(Foo& self)
+{
+	rex_dealloc_from(self.allocator, self.ptr);
+	self = {};
+}
+
+inline static Foo
 clone(const Foo& self, rc::Allocator allocator = rc::rex_allocator())
 {
-	return { rex_alloc_N(rc::i32, self.count), self.count };
+	auto other = self;
+	other.ptr = rex_alloc_N_from(allocator, rc::i32, other.count);
+	for (rc::sz i = 0; i < self.count; ++i)
+		other.ptr[i] = self.ptr[i];
+	other.allocator = allocator;
+	return other;
 }
 
 inline static void
 destroy(Foo& self)
 {
-	rex_dealloc(self.ptr);
+	foo_free(self);
 }
 
 TEST_CASE("[rex-core]: vec")
@@ -231,11 +254,11 @@ TEST_CASE("[rex-core]: vec")
 	SUBCASE("vec clone/destroy complex")
 	{
 		auto v1 = vec_from<Foo>({
-			{ rex_alloc_N(i32, 10), 10 },
-			{ rex_alloc_N(i32, 15), 15 },
-			{ rex_alloc_N(i32, 20), 20 },
-			{ rex_alloc_N(i32, 25), 25 },
-			{ rex_alloc_N(i32, 30), 30 },
+			foo_new(10),
+			foo_new(15),
+			foo_new(20),
+			foo_new(25),
+			foo_new(30),
 		});
 		rex_defer(destroy(v1));
 
@@ -255,11 +278,11 @@ TEST_CASE("[rex-core]: vec")
 	SUBCASE("vec clone/destroy complex using allocator")
 	{
 		auto v1 = vec_from<Foo>({
-			{ rex_alloc_N(i32, 10), 10 },
-			{ rex_alloc_N(i32, 15), 15 },
-			{ rex_alloc_N(i32, 20), 20 },
-			{ rex_alloc_N(i32, 25), 25 },
-			{ rex_alloc_N(i32, 30), 30 },
+			foo_new(10),
+			foo_new(15),
+			foo_new(20),
+			foo_new(25),
+			foo_new(30),
 		});
 		rex_defer(destroy(v1));
 
@@ -301,7 +324,7 @@ TEST_CASE("[rex-core]: vec")
 		rex_defer(vec_deinit(v));
 		vec_fill(v, 99);
 
-		for (i32 i = 0; i < v.count; ++i)
+		for (rc::sz i = 0; i < v.count; ++i)
 			CHECK(v[i] == 99);
 	}
 

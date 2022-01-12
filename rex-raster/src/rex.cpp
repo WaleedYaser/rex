@@ -28,9 +28,9 @@ namespace rex::raster
 	void
 	_swap(T& a, T& b)
 	{
-		T tmp = std::move(a);
-		a = std::move(b);
-		b = std::move(tmp);
+		T tmp = a;
+		a = b;
+		b = tmp;
 	}
 
 	// source: https://github.com/ssloy/tinyrenderer/wiki/Lesson-1:-Bresenham%E2%80%99s-Line-Drawing-Algorithm#timings-fifth-and-final-attempt
@@ -152,13 +152,11 @@ namespace rex::raster
 		self->canvas = canvas_init();
 		self->cam = camera_init();
 
-		// self->mesh = mesh_from_stl(rc::str_fmt(rc::frame_allocator(), "%s/data/dino.stl", rc::app_directory()).ptr);
-		self->mesh = mesh_from_obj(rc::str_fmt(rc::frame_allocator(), "%s/data/african_head.obj", rc::app_directory()).ptr);
-
+		self->mesh = mesh_from_obj(rc::str_fmt(rc::frame_allocator(), "%s/data/african_head/african_head.obj", rc::app_directory()).ptr);
+		self->texture = canvas_init();
 		{
 			int width, height, channels = 0;
-			auto data = stbi_load(rc::str_fmt(rc::frame_allocator(), "%s/data/african_head_diffuse.tga", rc::app_directory()).ptr, &width, &height, &channels, 4);
-			self->texture = canvas_init();
+			auto data = stbi_load(rc::str_fmt(rc::frame_allocator(), "%s/data/african_head/african_head_diffuse.tga", rc::app_directory()).ptr, &width, &height, &channels, 4);
 			canvas_resize(self->texture, width, height);
 			for (int y = 0; y < height; ++y)
 			{
@@ -192,7 +190,6 @@ namespace rex::raster
 		auto dt = self->dt;
 
 		// animation parameters
-		static bool reverse = false;
 		static float t = 0;
 
 		canvas_resize(canvas, self->screen_width, self->screen_height);
@@ -210,15 +207,18 @@ namespace rex::raster
 		self->cam.distance = distance;
 
 		auto M = math::mat4_translation(-mesh.bb_min - (mesh.bb_max - mesh.bb_min) * 0.5f);
+		#if REX_OS_WASM
+			M = M * math::mat4_rotation_y(t);
+		#endif
 
 		auto V = camera_view_mat(self->cam);
 		auto P = camera_proj_mat(self->cam);
 		auto viewport = math::mat4_viewport<float>(0, 0, (float)canvas.width, (float)canvas.height);
 
 		auto count = (mesh.indices.count ? mesh.indices.count : mesh.position.count);
-		for (int i = 0; i < count; i += 3)
+		for (rc::sz i = 0; i < count; i += 3)
 		{
-			int i0, i1, i2;
+			rc::sz i0, i1, i2;
 			if (mesh.indices.count)
 			{
 				i0 = mesh.indices[i+0];
@@ -262,6 +262,7 @@ namespace rex::raster
 			}
 			auto light_dir = math::V3{0.0f, 0.0f, -1.0f};
 			auto intensity = math::dot(math::normalize(n0), light_dir);
+			intensity = math::min(math::max(intensity, 0.0f), 1.0f);
 
 			auto uv0 = mesh.uv[mesh.uv_indices[i+0]];
 			auto uv1 = mesh.uv[mesh.uv_indices[i+1]];
@@ -280,7 +281,7 @@ namespace rex::raster
 			self->screen[i].r = (uint8_t)(canvas.color[i].r * 255);
 			self->screen[i].g = (uint8_t)(canvas.color[i].g * 255);
 			self->screen[i].b = (uint8_t)(canvas.color[i].b * 255);
-			self->screen[i].a = (uint8_t)(canvas.color[i].a * 255);
+			self->screen[i].a = 255;
 		}
 
 		// update t

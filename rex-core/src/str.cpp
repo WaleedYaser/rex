@@ -139,7 +139,7 @@ namespace rc
 		auto lines = vec_init<Str>(allocator);
 
 		sz start = 0;
-		for (auto i = 0; i < self.count; ++i)
+		for (sz i = 0; i < self.count; ++i)
 		{
 			if (self[i] == '\r' && i + 1 < self.count && self[i+1] == '\n')
 			{
@@ -168,7 +168,7 @@ namespace rc
 		auto lines = vec_init<Str>(allocator);
 
 		sz start = 0;
-		for (auto i = 0; i < self.count; ++i)
+		for (sz i = 0; i < self.count; ++i)
 		{
 			if (self[i] == c)
 			{
@@ -193,7 +193,7 @@ namespace rc
 			return 0;
 		}
 
-		int i = 0;
+		sz i = 0;
 		int sign = 1;
 		if (self[0] == '-')
 		{
