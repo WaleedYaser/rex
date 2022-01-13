@@ -107,7 +107,7 @@ namespace rc
 		};
 	};
 
-	using resize_callback_t = void (*)(struct Window*, i32, i32);
+	using event_callback_t = void (*)(struct Window*, Event event);
 
 	struct Window
 	{
@@ -115,17 +115,16 @@ namespace rc
 		void* native_handle;
 		const char* title;
 		i32 width, height;
-		Event last_event;
 
 		void* user_data;
-		resize_callback_t resize_callback;
+		event_callback_t event_callback;
 	};
 
 	REX_CORE_EXPORT Window*
-	window_init(const char *title, i32 width, i32 height, void* user_data, resize_callback_t resize_callback);
+	window_init(const char *title, i32 width, i32 height, void* user_data, event_callback_t event_callback);
 
 	REX_CORE_EXPORT void window_deinit(Window* self);
-	REX_CORE_EXPORT bool window_poll(Window* self);
+	REX_CORE_EXPORT void window_poll(Window* self);
 	REX_CORE_EXPORT void window_title_set(Window* self, const char* title);
 	REX_CORE_EXPORT void window_blit(Window* self, uint32_t* pixels, i32 width, i32 height);
 }

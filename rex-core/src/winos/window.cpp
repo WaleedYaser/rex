@@ -10,7 +10,7 @@
 
 namespace rc
 {
-	static KEY
+	inline static KEY
 	_key_from_wparam(WPARAM wparam)
 	{
 		switch (wparam)
@@ -79,6 +79,7 @@ namespace rc
 			self = (Window *)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 		}
 
+		Event event = {};
 		switch (msg)
 		{
 			case WM_LBUTTONDOWN:
@@ -87,106 +88,127 @@ namespace rc
 				// move cursor outside it we still get mouse events until we release the
 				// mouse.
 				SetCapture(hwnd);
-				self->last_event.type = EVENT_TYPE_MOUSE_BUTTON_PRESS;
-				self->last_event.mouse_button_press.button = MOUSE_BUTTON_LEFT;
+				event.type = EVENT_TYPE_MOUSE_BUTTON_PRESS;
+				event.mouse_button_press.button = MOUSE_BUTTON_LEFT;
+				if (self->event_callback)
+					self->event_callback(self, event);
 				break;
 			}
 			case WM_MBUTTONDOWN:
 			{
 				SetCapture(hwnd);
-				self->last_event.type = EVENT_TYPE_MOUSE_BUTTON_PRESS;
-				self->last_event.mouse_button_press.button = MOUSE_BUTTON_MIDDLE;
+				event.type = EVENT_TYPE_MOUSE_BUTTON_PRESS;
+				event.mouse_button_press.button = MOUSE_BUTTON_MIDDLE;
+				if (self->event_callback)
+					self->event_callback(self, event);
 				break;
 			}
 			case WM_RBUTTONDOWN:
 			{
 				SetCapture(hwnd);
-				self->last_event.type = EVENT_TYPE_MOUSE_BUTTON_PRESS;
-				self->last_event.mouse_button_press.button = MOUSE_BUTTON_RIGHT;
+				event.type = EVENT_TYPE_MOUSE_BUTTON_PRESS;
+				event.mouse_button_press.button = MOUSE_BUTTON_RIGHT;
+				if (self->event_callback)
+					self->event_callback(self, event);
 				break;
 			}
 			case WM_LBUTTONUP:
 			{
 				ReleaseCapture();
-				self->last_event.type = EVENT_TYPE_MOUSE_BUTTON_RELEASE;
-				self->last_event.mouse_button_press.button = MOUSE_BUTTON_LEFT;
+				event.type = EVENT_TYPE_MOUSE_BUTTON_RELEASE;
+				event.mouse_button_press.button = MOUSE_BUTTON_LEFT;
+				if (self->event_callback)
+					self->event_callback(self, event);
 				break;
 			}
 			case WM_MBUTTONUP:
 			{
 				ReleaseCapture();
-				self->last_event.type = EVENT_TYPE_MOUSE_BUTTON_RELEASE;
-				self->last_event.mouse_button_press.button = MOUSE_BUTTON_MIDDLE;
+				event.type = EVENT_TYPE_MOUSE_BUTTON_RELEASE;
+				event.mouse_button_press.button = MOUSE_BUTTON_MIDDLE;
+				if (self->event_callback)
+					self->event_callback(self, event);
 				break;
 			}
 			case WM_RBUTTONUP:
 			{
 				ReleaseCapture();
-				self->last_event.type = EVENT_TYPE_MOUSE_BUTTON_RELEASE;
-				self->last_event.mouse_button_press.button = MOUSE_BUTTON_RIGHT;
+				event.type = EVENT_TYPE_MOUSE_BUTTON_RELEASE;
+				event.mouse_button_press.button = MOUSE_BUTTON_RIGHT;
+				if (self->event_callback)
+					self->event_callback(self, event);
 				break;
 			}
 			case WM_MOUSEWHEEL:
 			{
 				if (GET_WHEEL_DELTA_WPARAM(wparam) > 0)
-					self->last_event.type = EVENT_TYPE_MOUSE_WHEEL_SCROLL_UP;
+					event.type = EVENT_TYPE_MOUSE_WHEEL_SCROLL_UP;
 				else if (GET_WHEEL_DELTA_WPARAM(wparam) < 0)
-					self->last_event.type = EVENT_TYPE_MOUSE_WHEEL_SCROLL_DOWN;
+					event.type = EVENT_TYPE_MOUSE_WHEEL_SCROLL_DOWN;
+				if (self->event_callback)
+					self->event_callback(self, event);
 				break;
 			}
 			case WM_MOUSEMOVE:
 			{
-				self->last_event.type = EVENT_TYPE_MOUSE_MOVE;
-				self->last_event.mouse_move.x = GET_X_LPARAM(lparam);
-				self->last_event.mouse_move.y = GET_Y_LPARAM(lparam);
+				event.type = EVENT_TYPE_MOUSE_MOVE;
+				event.mouse_move.x = GET_X_LPARAM(lparam);
+				event.mouse_move.y = GET_Y_LPARAM(lparam);
+				if (self->event_callback)
+					self->event_callback(self, event);
 				break;
 			}
 			case WM_KEYDOWN:
 			case WM_SYSKEYDOWN:
 			{
-				self->last_event.type = EVENT_TYPE_KEY_PRESS;
-				self->last_event.key_press.key = _key_from_wparam(wparam);
+				event.type = EVENT_TYPE_KEY_PRESS;
+				event.key_press.key = _key_from_wparam(wparam);
+				if (self->event_callback)
+					self->event_callback(self, event);
 				break;
 			}
 			case WM_KEYUP:
 			case WM_SYSKEYUP:
 			{
-				self->last_event.type = EVENT_TYPE_KEY_RELEASE;
-				self->last_event.key_release.key = _key_from_wparam(wparam);
+				event.type = EVENT_TYPE_KEY_RELEASE;
+				event.key_release.key = _key_from_wparam(wparam);
+				if (self->event_callback)
+					self->event_callback(self, event);
 				break;
 			}
 			case WM_SIZE:
 			{
-				self->last_event.type = EVENT_TYPE_WINDOW_RESIZE;
-				self->last_event.window_resize.width = LOWORD(lparam);
-				self->last_event.window_resize.height = HIWORD(lparam);
+				event.type = EVENT_TYPE_WINDOW_RESIZE;
+				event.window_resize.width = LOWORD(lparam);
+				event.window_resize.height = HIWORD(lparam);
 				self->width = LOWORD(lparam);
 				self->height = HIWORD(lparam);
-
-				if (self->resize_callback)
-					self->resize_callback(self, self->width, self->height);
-
+				if (self->event_callback)
+					self->event_callback(self, event);
 				break;
 			}
 			case WM_PAINT:
 			{
-				self->last_event.type = EVENT_TYPE_WINDOW_REPAINT;
+				event.type = EVENT_TYPE_WINDOW_REPAINT;
+				if (self->event_callback)
+					self->event_callback(self, event);
 				break;
 			}
 			case WM_CLOSE:
 			case WM_DESTROY:
 			{
 				PostQuitMessage(0);
-				self->last_event.type = EVENT_TYPE_WINDOW_CLOSE;
+				event.type = EVENT_TYPE_WINDOW_CLOSE;
+				if (self->event_callback)
+					self->event_callback(self, event);
 				return 0;
 			}
 		}
 		return DefWindowProcA(hwnd, msg, wparam, lparam);
 	}
 
-
 	Window*
-	window_init(const char *title, i32 width, i32 height, void* user_data, resize_callback_t resize_callback)
+	window_init(const char *title, i32 width, i32 height, void* user_data, event_callback_t event_callback)
 	{
 		auto self = rex_alloc_zeroed_T(Window);
 
@@ -241,7 +263,7 @@ namespace rc
 		self->height = height;
 		self->native_handle = handle;
 		self->user_data = user_data;
-		self->resize_callback = resize_callback;
+		self->event_callback = event_callback;
 
 		return self;
 	}
@@ -256,22 +278,17 @@ namespace rc
 		rex_dealloc(self);
 	}
 
-	bool
+	void
 	window_poll(Window* self)
 	{
-		self->last_event = {};
-
-		// if we don't have any message in the queue return FALSE
 		MSG msg = {};
-		if (PeekMessageA(&msg, (HWND)self->native_handle, 0, 0, PM_REMOVE) == false)
-			return false;
-
-		// translate virtual-key messages into character messages
-		TranslateMessage(&msg);
-		// dispatch message to window procedure
-		DispatchMessage(&msg);
-
-		return true;
+		while (PeekMessageA(&msg, (HWND)self->native_handle, 0, 0, PM_REMOVE))
+		{
+			// translate virtual-key messages into character messages
+			TranslateMessage(&msg);
+			// dispatch message to window procedure
+			DispatchMessage(&msg);
+		}
 	}
 
 	void

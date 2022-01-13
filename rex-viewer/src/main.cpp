@@ -72,6 +72,87 @@ _rc_key_to_rex_key(rc::KEY key)
 	return REX_KEY_NONE;
 }
 
+inline static void
+_rex_loop(rc::Window* window)
+{
+	auto rex = (Rex_Api*)window->user_data;
+	rex->screen_width = window->width;
+	rex->screen_height = window->height;
+
+	rex_dealloc(rex->screen);
+	rex->screen = rex_alloc_N(Rex_Pixel, rex->screen_width * rex->screen_height);
+
+	rex->loop(rex);
+	rc::window_blit(window, (uint32_t*)rex->screen, rex->screen_width, rex->screen_height);
+}
+
+inline static void
+_rex_event(rc::Window* window, rc::Event event)
+{
+	auto rex = (Rex_Api*)window->user_data;
+
+	switch (event.type)
+	{
+		case rc::EVENT_TYPE_WINDOW_CLOSE:
+		{
+			rex->quit = true;
+			break;
+		}
+		case rc::EVENT_TYPE_WINDOW_RESIZE:
+		{
+			_rex_loop(window);
+			break;
+		}
+		case rc::EVENT_TYPE_MOUSE_BUTTON_PRESS:
+		{
+			auto button = _rc_mouse_button_to_rex_key(event.mouse_button_press.button);
+			rex->input.keys[button].down = true;
+			rex->input.keys[button].pressed = true;
+			rex->input.keys[button].press_count++;
+			break;
+		}
+		case rc::EVENT_TYPE_MOUSE_BUTTON_RELEASE:
+		{
+			auto button = _rc_mouse_button_to_rex_key(event.mouse_button_release.button);
+			rex->input.keys[button].down = false;
+			rex->input.keys[button].released = true;
+			rex->input.keys[button].release_count++;
+			break;
+		}
+		case rc::EVENT_TYPE_MOUSE_MOVE:
+			rex->input.mouse_dx = event.mouse_move.x - rex->input.mouse_x;
+			rex->input.mouse_dy = event.mouse_move.y - rex->input.mouse_y;
+			rex->input.mouse_x = event.mouse_move.x;
+			rex->input.mouse_y = event.mouse_move.y;
+			break;
+		case rc::EVENT_TYPE_MOUSE_WHEEL_SCROLL_DOWN:
+			// TODO: handle this properly
+			rex->input.mouse_wheel = 1.0f;
+			break;
+		case rc::EVENT_TYPE_MOUSE_WHEEL_SCROLL_UP:
+			rex->input.mouse_wheel = -1.0f;
+			break;
+		case rc::EVENT_TYPE_KEY_PRESS:
+		{
+			auto key = _rc_key_to_rex_key(event.key_press.key);
+			rex->input.keys[key].down = true;
+			rex->input.keys[key].pressed = true;
+			rex->input.keys[key].press_count++;
+			break;
+		}
+		case rc::EVENT_TYPE_KEY_RELEASE:
+		{
+			auto key = _rc_key_to_rex_key(event.key_release.key);
+			rex->input.keys[key].down = false;
+			rex->input.keys[key].released = true;
+			rex->input.keys[key].release_count++;
+			break;
+		}
+		default:
+			// do nothing
+			break;
+	}
+}
 
 inline static int
 _rex_frame(double, void* user_data)
@@ -81,74 +162,10 @@ _rex_frame(double, void* user_data)
 	auto rex = load_rex_api();
 	window->user_data = rex;
 
-	for (int i = 0; i < REX_KEY_COUNT; ++i)
-	{
-		rex->input.keys[i].pressed = false;
-		rex->input.keys[i].released = false;
-		rex->input.keys[i].press_count = 0;
-		rex->input.keys[i].release_count = 0;
-	}
-	rex->input.mouse_wheel = 0.0f;
-	rex->input.mouse_dx = 0;
-	rex->input.mouse_dy = 0;
+	if (rex->quit)
+		return false;
 
-	while (rc::window_poll(window))
-	{
-		if (window->last_event.type == rc::EVENT_TYPE_WINDOW_CLOSE)
-			return false;
-
-		switch (window->last_event.type)
-		{
-			case rc::EVENT_TYPE_MOUSE_BUTTON_PRESS:
-			{
-				auto button = _rc_mouse_button_to_rex_key(window->last_event.mouse_button_press.button);
-				rex->input.keys[button].down = true;
-				rex->input.keys[button].pressed = true;
-				rex->input.keys[button].press_count++;
-				break;
-			}
-			case rc::EVENT_TYPE_MOUSE_BUTTON_RELEASE:
-			{
-				auto button = _rc_mouse_button_to_rex_key(window->last_event.mouse_button_release.button);
-				rex->input.keys[button].down = false;
-				rex->input.keys[button].released = true;
-				rex->input.keys[button].release_count++;
-				break;
-			}
-			case rc::EVENT_TYPE_MOUSE_MOVE:
-				rex->input.mouse_dx = window->last_event.mouse_move.x - rex->input.mouse_x;
-				rex->input.mouse_dy = window->last_event.mouse_move.y - rex->input.mouse_y;
-				rex->input.mouse_x = window->last_event.mouse_move.x;
-				rex->input.mouse_y = window->last_event.mouse_move.y;
-				break;
-			case rc::EVENT_TYPE_MOUSE_WHEEL_SCROLL_DOWN:
-				// TODO: handle this properly
-				rex->input.mouse_wheel = 1.0f;
-				break;
-			case rc::EVENT_TYPE_MOUSE_WHEEL_SCROLL_UP:
-				rex->input.mouse_wheel = -1.0f;
-				break;
-			case rc::EVENT_TYPE_KEY_PRESS:
-			{
-				auto key = _rc_key_to_rex_key(window->last_event.key_press.key);
-				rex->input.keys[key].down = true;
-				rex->input.keys[key].pressed = true;
-				rex->input.keys[key].press_count++;
-				break;
-			}
-			case rc::EVENT_TYPE_KEY_RELEASE:
-			{
-				auto key = _rc_key_to_rex_key(window->last_event.key_release.key);
-				rex->input.keys[key].down = false;
-				rex->input.keys[key].released = true;
-				rex->input.keys[key].release_count++;
-				break;
-			}
-			default:
-				// do nothing
-				break;
-		}
-	}
+	rc::window_poll(window);
 
 	auto busy_ms = rc::time_milliseconds();
 	if (busy_ms < 33)
@@ -163,8 +180,19 @@ _rex_frame(double, void* user_data)
 
 	// rex loop
 	rex->dt = frame_ms * 0.001f;
-	window->resize_callback(window, window->width, window->height);
+	_rex_loop(window);
 	rc::frame_allocator()->clear();
+
+	for (int i = 0; i < REX_KEY_COUNT; ++i)
+	{
+		rex->input.keys[i].pressed = false;
+		rex->input.keys[i].released = false;
+		rex->input.keys[i].press_count = 0;
+		rex->input.keys[i].release_count = 0;
+	}
+	rex->input.mouse_wheel = 0.0f;
+	rex->input.mouse_dx = 0;
+	rex->input.mouse_dy = 0;
 
 	return true;
 }
@@ -177,18 +205,7 @@ int main()
 	auto rex = load_rex_api();
 	rex->init(rex);
 
-	auto window = rc::window_init("Rex", 1280, 720, rex,
-		[](rc::Window* window, int32_t width, int32_t height) {
-			auto rex = (Rex_Api*)window->user_data;
-			rex->screen_width = width;
-			rex->screen_height = height;
-
-			rex_dealloc(rex->screen);
-			rex->screen = rex_alloc_N(Rex_Pixel, width * height);
-
-			rex->loop(rex);
-			rc::window_blit(window, (uint32_t*)rex->screen, rex->screen_width, rex->screen_height);
-	});
+	auto window = rc::window_init("Rex", 1280, 720, rex, _rex_event);
 
 	// init timing
 	rc::time_milliseconds();

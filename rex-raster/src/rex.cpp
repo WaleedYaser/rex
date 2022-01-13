@@ -207,10 +207,6 @@ namespace rex::raster
 		self->cam.distance = distance;
 
 		auto M = math::mat4_translation(-mesh.bb_min - (mesh.bb_max - mesh.bb_min) * 0.5f);
-		#if REX_OS_WASM
-			M = M * math::mat4_rotation_y(t);
-		#endif
-
 		auto V = camera_view_mat(self->cam);
 		auto P = camera_proj_mat(self->cam);
 		auto viewport = math::mat4_viewport<float>(0, 0, (float)canvas.width, (float)canvas.height);
