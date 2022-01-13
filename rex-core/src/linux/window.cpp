@@ -85,7 +85,7 @@ namespace rc
 	}
 
 	Window *
-	window_init(const char *title, i32 width, i32 height, void* user_data, resize_callback_t resize_callback)
+	window_init(const char *title, i32 width, i32 height, void* user_data, event_callback_t event_callback)
 	{
 		auto self = rex_alloc_zeroed_T(IWindow);
 
@@ -93,7 +93,7 @@ namespace rc
 		self->window.width = width;
 		self->window.height = height;
 		self->window.user_data = user_data;
-		self->window.resize_callback = resize_callback;
+		self->window.event_callback = event_callback;
 
 		// open connection to x server. use DISPLAY environment variable as the default dispaly name
 		self->connection = xcb_connect(NULL, NULL);
@@ -204,137 +204,134 @@ namespace rc
 		rex_dealloc(self);
 	}
 
-	bool
+	void
 	window_poll(Window* window)
 	{
 		auto self = (IWindow *)window;
 
-		self->window.last_event = {};
-
-		// poll next events and return FALSE if there is no unprocessed events, the event is allocated
+		// poll next events until there are no unprocessed events, the event is allocated
 		// on the heap that's why we need to free it at the end.
-		xcb_generic_event_t *event = xcb_poll_for_event(self->connection);
-		if (event == NULL)
-			return false;
-
-		// the "& !0x80" is weired I know and I'm not sure why do we need this but that's what the
-		// examples do
-		switch (event->response_type & ~0x80)
+		xcb_generic_event_t *e;
+		while ((e = xcb_poll_for_event(self->connection)))
 		{
-			case XCB_BUTTON_PRESS:
+			Event event = {};
+			// the "& !0x80" is weired I know and I'm not sure why do we need this but that's what the
+			// examples do
+			switch (e->response_type & ~0x80)
 			{
-				auto bp = (xcb_button_press_event_t *)event;
-				switch (bp->detail)
+				case XCB_BUTTON_PRESS:
 				{
-					case 1:
-						self->window.last_event.type = EVENT_TYPE_MOUSE_BUTTON_PRESS;
-						self->window.last_event.mouse_button_press.button = MOUSE_BUTTON_LEFT;
-						break;
-					case 2:
-						self->window.last_event.type = EVENT_TYPE_MOUSE_BUTTON_PRESS;
-						self->window.last_event.mouse_button_press.button = MOUSE_BUTTON_MIDDLE;
-						break;
-					case 3:
-						self->window.last_event.type = EVENT_TYPE_MOUSE_BUTTON_PRESS;
-						self->window.last_event.mouse_button_press.button = MOUSE_BUTTON_RIGHT;
-						break;
-					case 4:
-						self->window.last_event.type = EVENT_TYPE_MOUSE_WHEEL_SCROLL_UP;
-						break;
-					case 5:
-						self->window.last_event.type = EVENT_TYPE_MOUSE_WHEEL_SCROLL_DOWN;
-						break;
-					default:
-						// do nothing
-						break;
+					auto bp = (xcb_button_press_event_t *)e;
+					switch (bp->detail)
+					{
+						case 1:
+							event.type = EVENT_TYPE_MOUSE_BUTTON_PRESS;
+							event.mouse_button_press.button = MOUSE_BUTTON_LEFT;
+							break;
+						case 2:
+							event.type = EVENT_TYPE_MOUSE_BUTTON_PRESS;
+							event.mouse_button_press.button = MOUSE_BUTTON_MIDDLE;
+							break;
+						case 3:
+							event.type = EVENT_TYPE_MOUSE_BUTTON_PRESS;
+							event.mouse_button_press.button = MOUSE_BUTTON_RIGHT;
+							break;
+						case 4:
+							event.type = EVENT_TYPE_MOUSE_WHEEL_SCROLL_UP;
+							break;
+						case 5:
+							event.type = EVENT_TYPE_MOUSE_WHEEL_SCROLL_DOWN;
+							break;
+						default:
+							// do nothing
+							break;
+					}
+					break;
 				}
-				break;
-			}
-			case XCB_BUTTON_RELEASE:
-			{
-				auto br = (xcb_button_release_event_t *)event;
-				switch (br->detail)
+				case XCB_BUTTON_RELEASE:
 				{
-					case 1:
-						self->window.last_event.type = EVENT_TYPE_MOUSE_BUTTON_RELEASE;
-						self->window.last_event.mouse_button_press.button = MOUSE_BUTTON_LEFT;
-						break;
-					case 2:
-						self->window.last_event.type =EVENT_TYPE_MOUSE_BUTTON_RELEASE;
-						self->window.last_event.mouse_button_press.button = MOUSE_BUTTON_MIDDLE;
-						break;
-					case 3:
-						self->window.last_event.type = EVENT_TYPE_MOUSE_BUTTON_RELEASE;
-						self->window.last_event.mouse_button_press.button = MOUSE_BUTTON_RIGHT;
-						break;
-					case 4:
-					case 5:
-					default:
-						// do nothing
-						break;
+					auto br = (xcb_button_release_event_t *)e;
+					switch (br->detail)
+					{
+						case 1:
+							event.type = EVENT_TYPE_MOUSE_BUTTON_RELEASE;
+							event.mouse_button_press.button = MOUSE_BUTTON_LEFT;
+							break;
+						case 2:
+							event.type =EVENT_TYPE_MOUSE_BUTTON_RELEASE;
+							event.mouse_button_press.button = MOUSE_BUTTON_MIDDLE;
+							break;
+						case 3:
+							event.type = EVENT_TYPE_MOUSE_BUTTON_RELEASE;
+							event.mouse_button_press.button = MOUSE_BUTTON_RIGHT;
+							break;
+						case 4:
+						case 5:
+						default:
+							// do nothing
+							break;
+					}
+					break;
 				}
-				break;
-			}
-			case XCB_MOTION_NOTIFY:
-			{
-				auto mn = (xcb_motion_notify_event_t *)event;
-				self->window.last_event.type = EVENT_TYPE_MOUSE_MOVE;
-				self->window.last_event.mouse_move.x = mn->event_x;
-				self->window.last_event.mouse_move.y = mn->event_y;
-				break;
-			}
-			case XCB_KEY_PRESS:
-			{
-				auto kp =(xcb_key_press_event_t *)event;
-				self->window.last_event.type = EVENT_TYPE_KEY_PRESS;
-				self->window.last_event.key_press.key = _key_from_xcb_keycode(self, kp->detail);
-				break;
-			}
-			case XCB_KEY_RELEASE:
-			{
-				auto kr =(xcb_key_release_event_t *)event;
-				self->window.last_event.type = EVENT_TYPE_KEY_RELEASE;
-				self->window.last_event.key_release.key = _key_from_xcb_keycode(self, kr->detail);
-				break;
-			}
-			case XCB_CONFIGURE_NOTIFY:
-			{
-				auto cn = (xcb_configure_notify_event_t *)event;
-				if (cn->width != self->window.width || cn->height != self->window.height)
+				case XCB_MOTION_NOTIFY:
 				{
-					self->window.last_event.type = EVENT_TYPE_WINDOW_RESIZE;
-					self->window.last_event.window_resize.width = cn->width;
-					self->window.last_event.window_resize.height = cn->height;
+					auto mn = (xcb_motion_notify_event_t *)e;
+					event.type = EVENT_TYPE_MOUSE_MOVE;
+					event.mouse_move.x = mn->event_x;
+					event.mouse_move.y = mn->event_y;
+					break;
+				}
+				case XCB_KEY_PRESS:
+				{
+					auto kp =(xcb_key_press_event_t *)e;
+					event.type = EVENT_TYPE_KEY_PRESS;
+					event.key_press.key = _key_from_xcb_keycode(self, kp->detail);
+					break;
+				}
+				case XCB_KEY_RELEASE:
+				{
+					auto kr =(xcb_key_release_event_t *)e;
+					event.type = EVENT_TYPE_KEY_RELEASE;
+					event.key_release.key = _key_from_xcb_keycode(self, kr->detail);
+					break;
+				}
+				case XCB_CONFIGURE_NOTIFY:
+				{
+					auto cn = (xcb_configure_notify_event_t *)e;
+					if (cn->width != self->window.width || cn->height != self->window.height)
+					{
+						event.type = EVENT_TYPE_WINDOW_RESIZE;
+						event.window_resize.width = cn->width;
+						event.window_resize.height = cn->height;
 
-					self->window.width = cn->width;
-					self->window.height = cn->height;
-
-					if (self->window.resize_callback)
-						self->window.resize_callback(&self->window, self->window.width, self->window.height);
+						self->window.width = cn->width;
+						self->window.height = cn->height;
+					}
+					break;
 				}
-				break;
-			}
-			case XCB_CLIENT_MESSAGE:
-			{
-				auto cm = (xcb_client_message_event_t *)event;
-				if (cm->data.data32[0] == self->wm_delete_win)
+				case XCB_CLIENT_MESSAGE:
 				{
-					self->window.last_event.type = EVENT_TYPE_WINDOW_CLOSE;
+					auto cm = (xcb_client_message_event_t *)e;
+					if (cm->data.data32[0] == self->wm_delete_win)
+					{
+						event.type = EVENT_TYPE_WINDOW_CLOSE;
+					}
+					break;
 				}
-				break;
+				case XCB_MAP_NOTIFY:
+				case XCB_MAPPING_NOTIFY:
+				case XCB_REPARENT_NOTIFY:
+					// do nothing
+					break;
+				default:
+					// rex_assert_msg(false, "[rex-core]: unexpected platform window event");
+					break;
 			}
-			case XCB_MAP_NOTIFY:
-			case XCB_MAPPING_NOTIFY:
-			case XCB_REPARENT_NOTIFY:
-				// do nothing
-				break;
-			default:
-				// rex_assert_msg(false, "[rex-core]: unexpected platform window event");
-				break;
+			free(e);
+
+			if (event.type != EVENT_TYPE_NONE && self->window.event_callback)
+				self->window.event_callback(&self->window, event);
 		}
-		free(event);
-
-		return true;
 	}
 
 	void
