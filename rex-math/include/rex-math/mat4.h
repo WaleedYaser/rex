@@ -269,7 +269,7 @@ namespace rex::math
 			c + (1-c)*x*x  , (1-c)*x*y + s*z, (1-c)*x*z - s*y, 0.0f,
 			(1-c)*x*y - s*z, c + (1-c)*y*y  , (1-c)*y*z + s*x, 0.0f,
 			(1-c)*x*z + s*y, (1-c)*y*z - s*x, c + (1-c)*z*z  , 0.0f,
-			0.0f           ,            0.0f,            0.0f, 1.0f
+			0.0f           , 0.0f           , 0.0f           , 1.0f
 		};
 	}
 

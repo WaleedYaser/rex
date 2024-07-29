@@ -46,6 +46,7 @@ endif()
 add_subdirectory(rex-core)
 add_subdirectory(rex-math)
 add_subdirectory(rex-raster)
+add_subdirectory(rex-gfx)
 add_subdirectory(rex-viewer)
 
 include(CTest)

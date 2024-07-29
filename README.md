@@ -67,3 +67,9 @@ cmake -G "MinGW Makefiles" -B build-wasm -DCMAKE_TOOLCHAIN_FILE=D:/code/emsdk/up
 - http://marcelbraghetto.github.io/a-simple-triangle/2019/03/10/part-06/?utm_source=pocket_mylist
 - https://github.com/MoustaphaSaad/mn
 - https://github.com/raysan5/raylib
+
+## To read
+[ ] DXGI Overview
+[ ] DirectX Graphics Infrastructure: Best Practice
+[ ] DXGI 1.4 Improvements
+[ ] Resources residency
