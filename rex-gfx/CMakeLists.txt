@@ -13,9 +13,9 @@ target_include_directories(rex-gfx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_link_libraries(rex-gfx PRIVATE
 	rex-options
-    rex-core
+	rex-core
 	$<$<PLATFORM_ID:Windows>:D3d12.lib>
 	$<$<PLATFORM_ID:Windows>:DXGI.lib>
 	$<$<PLATFORM_ID:Windows>:d3dcompiler.lib>
-
+	$<$<PLATFORM_ID:Windows>:dxguid.lib>
 )

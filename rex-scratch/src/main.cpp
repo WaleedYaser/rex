@@ -4,6 +4,7 @@ int main()
 {
 	Rex_Gfx* gfx = rex_gfx_init();
 	rex_gfx_deinit(gfx);
+
 	// rex_log_trace("%s", "rex");
 	// rex_log_debug("%s", "rex");
 	// rex_log_info("%s", "rex");

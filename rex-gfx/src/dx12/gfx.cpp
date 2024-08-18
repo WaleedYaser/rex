@@ -1,91 +1,156 @@
 #include "rex-gfx/gfx.h"
+#include "rex-core/vec.h"
+#include "rex-core/defer.h"
+#include "gfx_dx12.h"
 
-#include <d3d12.h>
-#include <dxgi1_6.h>
 #include <rex-core/assert.h>
 #include <rex-core/log.h>
+#include <cstdint>
+#include <string>
+#include <dxgidebug.h>
 
-struct Rex_Gfx
+namespace rg
 {
-    ID3D12Device* device;
-};
-
-inline static void
-get_hardware_adapter(IDXGIFactory1* factory, IDXGIAdapter1 **adapter, bool request_high_performance_adapter)
-{
-    *adapter = nullptr;
-
-    IDXGIFactory6 *factory6;
-    if (FAILED(factory->QueryInterface(IID_PPV_ARGS(&factory6))))
+    Adapter
+    adapter_init(IDXGIAdapter* adapter_handle)
     {
-        rex_assert_msg(false, "Failed to query factory 6");
-        return;
+        Adapter self = {};
+        self.handle = adapter_handle;
+        self.outputs = rc::vec_init<IDXGIOutput*>();
+
+        IDXGIOutput* output = nullptr;
+        for (uint32_t i = 0; self.handle->EnumOutputs(i, &output) != DXGI_ERROR_NOT_FOUND; ++i)
+        {
+            rc::vec_push(self.outputs, output);
+        }
+
+        return self;
     }
 
-    IDXGIAdapter1 *tmp_adapter = nullptr;
-    for (uint32_t i = 0;
-        SUCCEEDED(factory6->EnumAdapterByGpuPreference(
-            i,
-            request_high_performance_adapter? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_UNSPECIFIED,
-            IID_PPV_ARGS(&tmp_adapter)));
-        ++i)
+    void
+    adapter_deinit(Adapter& self)
     {
-        DXGI_ADAPTER_DESC1 desc;
-        if (FAILED(tmp_adapter->GetDesc1(&desc)))
+        for (auto& output: self.outputs)
         {
-            rex_assert_msg(false, "Failed to get adapter description");
-            return;
+            output->Release();
         }
-
-        if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-        {
-            tmp_adapter->Release();
-            continue;
-        }
-
-        // check if the adapter supports direct3d 12
-        if(SUCCEEDED(D3D12CreateDevice(tmp_adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
-        {
-            break;
-        }
-
-        tmp_adapter->Release();
+        self.handle->Release();
+        rc::vec_deinit(self.outputs);
+        self = {};
     }
-    factory6->Release();
 
-    if (tmp_adapter == nullptr)
+    void
+    destroy(Adapter& self)
     {
-        for (uint32_t i = 0; SUCCEEDED(factory->EnumAdapters1(i, &tmp_adapter)); ++i)
+        adapter_deinit(self);
+    }
+
+    void
+    adapter_log_display_modes(const Adapter& self, DXGI_FORMAT format)
+    {
+        DXGI_ADAPTER_DESC desc = {};
+        self.handle->GetDesc(&desc);
+        std::wstring text = L"***Adapter: ";
+        text += desc.Description;
+        text += L"\n";
+        OutputDebugStringW(text.c_str());
+
+        for (const auto& output: self.outputs)
         {
-            DXGI_ADAPTER_DESC1 desc;
-            if (FAILED(tmp_adapter->GetDesc1(&desc)))
+            // TODO: handle wstring in a better way
+            DXGI_OUTPUT_DESC desc = {};
+            output->GetDesc(&desc);
+            std::wstring text = L"***Output: ";
+            text += desc.DeviceName;
+            text += L"\n";
+            OutputDebugStringW(text.c_str());
+
+            uint32_t count = 0;
+            uint32_t flags = 0;
+
+            // get display modes count
+            output->GetDisplayModeList(format, flags, &count, nullptr);
+
+            rc::Vec<DXGI_MODE_DESC> mode_list = rc::vec_with_count<DXGI_MODE_DESC>(count);
+            rex_defer(rc::vec_deinit(mode_list));
+
+            output->GetDisplayModeList(format, flags, &count, &mode_list[0]);
+
+            for (const auto& mode: mode_list)
             {
-                rex_assert_msg(false, "Failed to get adapter description");
-                return;
+                uint32_t n = mode.RefreshRate.Numerator;
+                uint32_t d = mode.RefreshRate.Denominator;
+                std::wstring text =
+                    L"width = " + std::to_wstring(mode.Width) + L" " +
+                    L"height = " + std::to_wstring(mode.Height) + L" " +
+                    L"refresh = " + std::to_wstring(n) + L"/" + std::to_wstring(d) +
+                    L"\n";
+                OutputDebugStringW(text.c_str());
             }
+        }
+    }
 
+    void
+    init_adapters(Rex_Gfx& self, IDXGIFactory4* factory)
+    {
+        self.adapters = rc::vec_init<Adapter>();
+
+        IDXGIAdapter* adapter = nullptr;
+        for (uint32_t i = 0; factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i)
+        {
+            rc::vec_push(self.adapters, adapter_init(adapter));
+        }
+    }
+
+    const Adapter*
+    get_software_adapter(Rex_Gfx& self)
+    {
+        for (const auto& adapter: self.adapters)
+        {
+            IDXGIAdapter1* adapter1 = nullptr;
+            if (FAILED(adapter.handle->QueryInterface(IID_PPV_ARGS(&adapter1))))
+            {
+                rex_assert_msg(false, "Failed to query adapter 1");
+            }
+            rex_defer(adapter1->Release());
+
+            DXGI_ADAPTER_DESC1 desc = {};
+            adapter1->GetDesc1(&desc);
             if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
             {
-                tmp_adapter->Release();
+                return &adapter;
+            }
+        }
+        return nullptr;
+    }
+
+    const Adapter*
+    get_hardware_adapter(Rex_Gfx& self)
+    {
+        // return first hardware adapter that supports direct3d 12
+        for (const auto& adapter: self.adapters)
+        {
+            IDXGIAdapter1* adapter1 = nullptr;
+            if (FAILED(adapter.handle->QueryInterface(IID_PPV_ARGS(&adapter1))))
+            {
+                rex_assert_msg(false, "Failed to query adapter 1");
+            }
+            rex_defer(adapter1->Release());
+
+            DXGI_ADAPTER_DESC1 desc = {};
+            adapter1->GetDesc1(&desc);
+            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+            {
                 continue;
             }
 
-            // check if the adapter supports direct3d 12
-            if(SUCCEEDED(D3D12CreateDevice(tmp_adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+            if (SUCCEEDED(D3D12CreateDevice(adapter.handle, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
             {
-                break;
+                return &adapter;
             }
-            tmp_adapter->Release();
         }
+        return nullptr;
     }
-
-    *adapter = tmp_adapter;
-}
-
-inline static ID3D12Device*
-create_device()
-{
-
 }
 
 Rex_Gfx*
@@ -98,7 +163,7 @@ rex_gfx_init()
     #if defined(DEBUG) || defined(_DEBUG)
     {
         // Enable debug layer
-        ID3D12Debug* debug_controller;
+        ID3D12Debug* debug_controller = nullptr;
         if (FAILED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug_controller))))
         {
             rex_assert_msg(false, "Failed to get debug interface");
@@ -106,34 +171,65 @@ rex_gfx_init()
         debug_controller->EnableDebugLayer();
 
         // Enable GPU base validation
-        ID3D12Debug1* debug_controller1;
-        if (FAILED(debug_controller->QueryInterface(IID_PPV_ARGS(&debug_controller1))))
+        ID3D12Debug5* debug_controller5 = nullptr;
+        if (FAILED(debug_controller->QueryInterface(IID_PPV_ARGS(&debug_controller5))))
         {
             rex_assert_msg(false, "Failed to query debug controller 1");
         }
-        debug_controller1->SetEnableGPUBasedValidation(true);
+        debug_controller5->SetEnableAutoName(true);
+        debug_controller5->SetEnableGPUBasedValidation(true);
 
         debug_controller->Release();
-        debug_controller1->Release();
+        debug_controller5->Release();
+
+        IDXGIDebug1* debug_interface = nullptr;
+        if (FAILED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&debug_interface))))
+        {
+            rex_assert_msg(false, "Failed to query debug interface 1");
+        }
+        // TODO: not working!!
+        debug_interface->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
+        debug_interface->Release();
 
         dxgi_factory_flags |= DXGI_CREATE_FACTORY_DEBUG;
     }
     #endif
 
-    // create hardware device
     IDXGIFactory4* factory;
+    rex_defer(factory->Release());
     {
         if (FAILED(CreateDXGIFactory2(dxgi_factory_flags, IID_PPV_ARGS(&factory))))
         {
             rex_assert_msg(false, "Failed to create dxgi factory");
         }
+    }
 
-        IDXGIAdapter1 *hardware_adapter;
-        get_hardware_adapter(factory, &hardware_adapter, true);
+    rg::init_adapters(self, factory);
+    for (const auto& adapter: self.adapters)
+    {
+        rg::adapter_log_display_modes(adapter, DXGI_FORMAT_B8G8R8A8_UNORM);
+    }
 
-        if (FAILED(D3D12CreateDevice(hardware_adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&self.device))))
+    self.sw_adapter = rg::get_software_adapter(self);
+    self.hw_adapter = rg::get_hardware_adapter(self);
+
+    // create the device
+    {
+        if (self.hw_adapter == nullptr)
         {
-            rex_assert_msg(false, "Failed to create hardware device");
+            // create warp adapter
+            rex_log_info("Falling back to warp adapter");
+            if (FAILED(D3D12CreateDevice(self.sw_adapter->handle, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&self.device))))
+            {
+                rex_assert_msg(false, "Failed to create software device");
+            }
+        }
+        else
+        {
+            if (FAILED(D3D12CreateDevice(self.hw_adapter->handle, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&self.device))))
+            {
+                rex_assert_msg(false, "Failed to create hardware device");
+            }
         }
     }
 
@@ -143,5 +239,6 @@ rex_gfx_init()
 void
 rex_gfx_deinit(Rex_Gfx* self)
 {
-
+    self->device->Release();
+    destroy(self->adapters);
 }
