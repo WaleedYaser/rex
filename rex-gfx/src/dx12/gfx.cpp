@@ -91,12 +91,12 @@ namespace rg
     }
 
     void
-    init_adapters(Rex_Gfx& self, IDXGIFactory4* factory)
+    init_adapters(Rex_Gfx& self)
     {
         self.adapters = rc::vec_init<Adapter>();
 
         IDXGIAdapter* adapter = nullptr;
-        for (uint32_t i = 0; factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i)
+        for (uint32_t i = 0; self.factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i)
         {
             rc::vec_push(self.adapters, adapter_init(adapter));
         }
@@ -195,16 +195,12 @@ rex_gfx_init()
     }
     #endif
 
-    IDXGIFactory4* factory;
-    rex_defer(factory->Release());
+    if (FAILED(CreateDXGIFactory2(dxgi_factory_flags, IID_PPV_ARGS(&self.factory))))
     {
-        if (FAILED(CreateDXGIFactory2(dxgi_factory_flags, IID_PPV_ARGS(&factory))))
-        {
-            rex_assert_msg(false, "Failed to create dxgi factory");
-        }
+        rex_assert_msg(false, "Failed to create dxgi factory");
     }
 
-    rg::init_adapters(self, factory);
+    rg::init_adapters(self);
     for (const auto& adapter: self.adapters)
     {
         rg::adapter_log_display_modes(adapter, DXGI_FORMAT_B8G8R8A8_UNORM);
@@ -233,12 +229,73 @@ rex_gfx_init()
         }
     }
 
+    // create fence
+    if (FAILED(self.device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&self.fence))))
+    {
+        rex_assert_msg(false, "Failed to create hardware device");
+    }
+
+    // query descriptors sizes
+    {
+        self.rtv_descriptor_size = self.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+        self.dsv_descriptor_size = self.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+        self.cbv_srv_uav_descriptor_size = self.device->GetDescriptorHandleIncrementSize(
+            D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    }
+
+    // check for MSAA quality support
+    {
+        D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS ms_quality_levels = {};
+        // TODO: backbuffer format
+        ms_quality_levels.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        ms_quality_levels.SampleCount = 4;
+        if (FAILED(self.device->CheckFeatureSupport(
+            D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &ms_quality_levels, sizeof(ms_quality_levels))))
+        {
+            rex_assert_msg(false, "Failed to check feature support MSAA");
+        }
+        rex_assert_msg(ms_quality_levels.NumQualityLevels > 0, "4x MSAA not supported");
+    }
+
+    // create command queue
+    {
+        D3D12_COMMAND_QUEUE_DESC command_queue_desc = {};
+        command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+        if (FAILED(self.device->CreateCommandQueue(&command_queue_desc, IID_PPV_ARGS(&self.command_queue))))
+        {
+            rex_assert_msg(false, "Failed to create command queue");
+        }
+    }
+
+    // create command allocator
+    {
+        if (FAILED(self.device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&self.command_allocator))))
+        {
+            rex_assert_msg(false, "Failed to create command allocator");
+        }
+    }
+
+    // create command list
+    {
+        if (FAILED(self.device->CreateCommandList(
+            0, D3D12_COMMAND_LIST_TYPE_DIRECT, self.command_allocator, nullptr, IID_PPV_ARGS(&self.command_list))))
+        {
+            rex_assert_msg(false, "Failed to create command list");
+        }
+        self.command_list->Close();
+    }
+
     return &self;
 }
 
 void
 rex_gfx_deinit(Rex_Gfx* self)
 {
+    self->command_list->Release();
+    self->command_allocator->Release();
+    self->command_queue->Release();
+    self->fence->Release();
+    self->factory->Release();
     self->device->Release();
     destroy(self->adapters);
 }

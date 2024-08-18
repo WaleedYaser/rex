@@ -29,7 +29,7 @@ namespace rg
     adapter_log_display_modes(const Adapter& self, DXGI_FORMAT format);
 
     void
-    init_adapters(Rex_Gfx& self, IDXGIFactory4* factory);
+    init_adapters(Rex_Gfx& self);
 
     const Adapter*
     get_software_adapter(Rex_Gfx& self);
@@ -43,5 +43,17 @@ struct Rex_Gfx
     rc::Vec<rg::Adapter> adapters;
     const rg::Adapter* sw_adapter;
     const rg::Adapter* hw_adapter;
+
+    IDXGIFactory4* factory;
     ID3D12Device* device;
+
+    ID3D12Fence* fence;
+
+    uint32_t rtv_descriptor_size;
+    uint32_t dsv_descriptor_size;
+    uint32_t cbv_srv_uav_descriptor_size;
+
+    ID3D12CommandQueue* command_queue;
+    ID3D12CommandAllocator* command_allocator;
+    ID3D12GraphicsCommandList* command_list;
 };
