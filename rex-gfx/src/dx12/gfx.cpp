@@ -158,6 +158,8 @@ rex_gfx_init()
 {
     static Rex_Gfx self;
 
+    self.backbuffer_format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
     uint32_t dxgi_factory_flags = 0;
 
     #if defined(DEBUG) || defined(_DEBUG)
@@ -200,10 +202,11 @@ rex_gfx_init()
         rex_assert_msg(false, "Failed to create dxgi factory");
     }
 
+
     rg::init_adapters(self);
     for (const auto& adapter: self.adapters)
     {
-        rg::adapter_log_display_modes(adapter, DXGI_FORMAT_B8G8R8A8_UNORM);
+        rg::adapter_log_display_modes(adapter, self.backbuffer_format);
     }
 
     self.sw_adapter = rg::get_software_adapter(self);
@@ -247,7 +250,7 @@ rex_gfx_init()
     {
         D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS ms_quality_levels = {};
         // TODO: backbuffer format
-        ms_quality_levels.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        ms_quality_levels.Format = self.backbuffer_format;
         ms_quality_levels.SampleCount = 4;
         if (FAILED(self.device->CheckFeatureSupport(
             D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &ms_quality_levels, sizeof(ms_quality_levels))))
@@ -257,45 +260,108 @@ rex_gfx_init()
         rex_assert_msg(ms_quality_levels.NumQualityLevels > 0, "4x MSAA not supported");
     }
 
-    // create command queue
-    {
-        D3D12_COMMAND_QUEUE_DESC command_queue_desc = {};
-        command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-        if (FAILED(self.device->CreateCommandQueue(&command_queue_desc, IID_PPV_ARGS(&self.command_queue))))
-        {
-            rex_assert_msg(false, "Failed to create command queue");
-        }
-    }
-
-    // create command allocator
-    {
-        if (FAILED(self.device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&self.command_allocator))))
-        {
-            rex_assert_msg(false, "Failed to create command allocator");
-        }
-    }
-
-    // create command list
-    {
-        if (FAILED(self.device->CreateCommandList(
-            0, D3D12_COMMAND_LIST_TYPE_DIRECT, self.command_allocator, nullptr, IID_PPV_ARGS(&self.command_list))))
-        {
-            rex_assert_msg(false, "Failed to create command list");
-        }
-        self.command_list->Close();
-    }
-
     return &self;
 }
 
 void
 rex_gfx_deinit(Rex_Gfx* self)
 {
-    self->command_list->Release();
-    self->command_allocator->Release();
-    self->command_queue->Release();
     self->fence->Release();
     self->factory->Release();
     self->device->Release();
     destroy(self->adapters);
+}
+
+
+Rex_Gfx_Command_Queue*
+rex_gfx_command_queue_init(Rex_Gfx* gfx)
+{
+    ID3D12CommandQueue* command_queue_handle = nullptr;
+
+    D3D12_COMMAND_QUEUE_DESC command_queue_desc = {};
+    command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+    if (FAILED(gfx->device->CreateCommandQueue(&command_queue_desc, IID_PPV_ARGS(&command_queue_handle))))
+    {
+        rex_assert_msg(false, "Failed to create command queue");
+    }
+
+    auto self = rex_alloc_T(Rex_Gfx_Command_Queue);
+    self->handle = command_queue_handle;
+    return self;
+}
+
+void
+rex_gfx_command_queue_deinit(Rex_Gfx_Command_Queue* self)
+{
+    self->handle->Release();
+    rex_dealloc(self);
+}
+
+Rex_Gfx_Command_List*
+rex_gfx_command_list_init(Rex_Gfx* gfx)
+{
+    ID3D12CommandAllocator* command_allocator = nullptr;
+    if (FAILED(gfx->device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocator))))
+    {
+        rex_assert_msg(false, "Failed to create command allocator");
+    }
+
+    ID3D12GraphicsCommandList* command_list_handle = nullptr;
+    if (FAILED(gfx->device->CreateCommandList(
+        0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocator, nullptr, IID_PPV_ARGS(&command_list_handle))))
+    {
+        rex_assert_msg(false, "Failed to create command list");
+    }
+    command_list_handle->Close();
+
+    auto self = rex_alloc_T(Rex_Gfx_Command_List);
+    self->handle = command_list_handle;
+    self->allocator = command_allocator;
+    return self;
+}
+
+void
+rex_gfx_command_list_deinit(Rex_Gfx_Command_List* self)
+{
+    self->handle->Release();
+    self->allocator->Release();
+    rex_dealloc(self);
+}
+
+Rex_Gfx_Swapchain*
+rex_gfx_swapchain_init(Rex_Gfx* gfx, Rex_Gfx_Command_Queue* command_queue, void* window_native_handle)
+{
+    RECT window_rect = {};
+    GetWindowRect((HWND)window_native_handle, &window_rect);
+
+    IDXGISwapChain* swapchain_handle = nullptr;
+    DXGI_SWAP_CHAIN_DESC swapchain_desc = {};
+    swapchain_desc.BufferDesc.Width = window_rect.right - window_rect.left;
+    swapchain_desc.BufferDesc.Height = window_rect.bottom - window_rect.top;
+    swapchain_desc.BufferDesc.RefreshRate.Numerator = 60;
+    swapchain_desc.BufferDesc.RefreshRate.Denominator = 1;
+    swapchain_desc.BufferDesc.Format = gfx->backbuffer_format;
+    swapchain_desc.SampleDesc.Count = 1;
+    swapchain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swapchain_desc.BufferCount = 2;
+    swapchain_desc.OutputWindow = (HWND)(window_native_handle);
+    swapchain_desc.Windowed = true;
+    swapchain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    swapchain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+
+    if (FAILED(gfx->factory->CreateSwapChain(command_queue->handle, &swapchain_desc, &swapchain_handle)))
+    {
+        rex_assert_msg(false, "Failed to create swapchain");
+    }
+
+    auto self = rex_alloc_T(Rex_Gfx_Swapchain);
+    self->handle = swapchain_handle;
+    return self;
+}
+
+void
+rex_gfx_swapchain_deinit(Rex_Gfx_Swapchain* self)
+{
+    self->handle->Release();
+    rex_dealloc(self);
 }

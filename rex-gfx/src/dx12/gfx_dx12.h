@@ -40,6 +40,8 @@ namespace rg
 
 struct Rex_Gfx
 {
+    DXGI_FORMAT backbuffer_format;
+
     rc::Vec<rg::Adapter> adapters;
     const rg::Adapter* sw_adapter;
     const rg::Adapter* hw_adapter;
@@ -52,8 +54,20 @@ struct Rex_Gfx
     uint32_t rtv_descriptor_size;
     uint32_t dsv_descriptor_size;
     uint32_t cbv_srv_uav_descriptor_size;
+};
 
-    ID3D12CommandQueue* command_queue;
-    ID3D12CommandAllocator* command_allocator;
-    ID3D12GraphicsCommandList* command_list;
+struct Rex_Gfx_Command_Queue
+{
+    ID3D12CommandQueue* handle;
+};
+
+struct Rex_Gfx_Command_List
+{
+    ID3D12GraphicsCommandList* handle;
+    ID3D12CommandAllocator* allocator;
+};
+
+struct Rex_Gfx_Swapchain
+{
+    IDXGISwapChain* handle;
 };
