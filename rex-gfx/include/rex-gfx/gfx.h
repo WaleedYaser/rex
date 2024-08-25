@@ -33,6 +33,9 @@ REX_GFX_EXPORT void
 rex_gfx_command_queue_deinit(Rex_Gfx_Command_Queue* self);
 
 REX_GFX_EXPORT void
+rex_gfx_command_queue_execute(Rex_Gfx_Command_Queue* self, Rex_Gfx_Command_List* command_list);
+
+REX_GFX_EXPORT void
 rex_gfx_command_queue_flush(Rex_Gfx_Command_Queue* self);
 
 REX_GFX_EXPORT Rex_Gfx_Command_List*
@@ -40,6 +43,9 @@ rex_gfx_command_list_init(Rex_Gfx* gfx);
 
 REX_GFX_EXPORT void
 rex_gfx_command_list_deinit(Rex_Gfx_Command_List* self);
+
+REX_GFX_EXPORT void
+rex_gfx_command_list_begin(Rex_Gfx_Command_List* self, Rex_Gfx_Swapchain* swapchain);
 
 REX_GFX_EXPORT void
 rex_gfx_command_list_set_viewport(Rex_Gfx_Command_List* self, const Rex_Gfx_Viewport viewport);
@@ -52,6 +58,9 @@ rex_gfx_swapchain_deinit(Rex_Gfx_Swapchain* self);
 
 REX_GFX_EXPORT void
 rex_gfx_swapchain_resize(Rex_Gfx* gfx, Rex_Gfx_Swapchain* self, unsigned width, unsigned height);
+
+REX_GFX_EXPORT void
+rex_gfx_swapchain_present(Rex_Gfx_Swapchain* self);
 
 REX_GFX_EXPORT Rex_Gfx_Texture*
 rex_gfx_texture_init(Rex_Gfx* gfx, const Rex_Gfx_Texture_Desc texture_desc);

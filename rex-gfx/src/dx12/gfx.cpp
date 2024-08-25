@@ -179,7 +179,7 @@ rex_gfx_init()
             rex_assert_msg(false, "Failed to query debug controller 1");
         }
         debug_controller5->SetEnableAutoName(true);
-        debug_controller5->SetEnableGPUBasedValidation(true);
+        // debug_controller5->SetEnableGPUBasedValidation(true);
 
         debug_controller->Release();
         debug_controller5->Release();
@@ -323,6 +323,13 @@ rex_gfx_command_queue_deinit(Rex_Gfx_Command_Queue* self)
 }
 
 void
+rex_gfx_command_queue_execute(Rex_Gfx_Command_Queue* self, Rex_Gfx_Command_List* command_list)
+{
+    ID3D12CommandList* command_lists[] = { command_list->handle };
+    self->handle->ExecuteCommandLists(_countof(command_lists), command_lists);
+}
+
+void
 rex_gfx_command_queue_flush(Rex_Gfx_Command_Queue* self)
 {
     self->fence_value++;
@@ -376,6 +383,57 @@ rex_gfx_command_list_deinit(Rex_Gfx_Command_List* self)
 }
 
 void
+rex_gfx_command_list_begin(Rex_Gfx_Command_List* self, Rex_Gfx_Swapchain* swapchain)
+{
+    if (FAILED(self->allocator->Reset()))
+    {
+        rex_assert_msg(false, "Failed to reset command allocator");
+    }
+
+    if (FAILED(self->handle->Reset(self->allocator, nullptr)))
+    {
+        rex_assert_msg(false, "Failed to reset command list");
+    }
+
+    ID3D12Resource* current_render_target;
+    swapchain->handle->GetBuffer(swapchain->current_backbuffer, IID_PPV_ARGS(&current_render_target));
+
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = current_render_target;
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+    self->handle->ResourceBarrier(1, &barrier);
+
+    D3D12_VIEWPORT viewport = {};
+    viewport.Width = (float)swapchain->width;
+    viewport.Height = (float)swapchain->height;
+    viewport.MaxDepth = 1.0f;
+    self->handle->RSSetViewports(1, &viewport);
+
+    D3D12_RECT scissor_rect = {};
+    scissor_rect.right = swapchain->width;
+    scissor_rect.bottom = swapchain->height;
+    self->handle->RSSetScissorRects(1, &scissor_rect);
+
+    auto rtv = swapchain->rtv[swapchain->current_backbuffer];
+
+    float color[4] = {1.0f, 0.0f, 0.0f, 1.0f};
+    self->handle->ClearRenderTargetView(rtv, color, 0, nullptr);
+
+    self->handle->OMSetRenderTargets(1, &rtv, true, nullptr);
+
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+    self->handle->ResourceBarrier(1, &barrier);
+
+    current_render_target->Release();
+    self->handle->Close();
+}
+
+void
 rex_gfx_command_list_set_viewport(Rex_Gfx_Command_List* self, const Rex_Gfx_Viewport viewport)
 {
     D3D12_VIEWPORT vp = {};
@@ -396,10 +454,12 @@ rex_gfx_swapchain_init(Rex_Gfx* gfx, Rex_Gfx_Command_Queue* command_queue, void*
     RECT window_rect = {};
     GetWindowRect((HWND)window_native_handle, &window_rect);
 
+    self->width = window_rect.right - window_rect.left;
+    self->height = window_rect.bottom - window_rect.top;
     IDXGISwapChain* swapchain_handle = nullptr;
     DXGI_SWAP_CHAIN_DESC swapchain_desc = {};
-    swapchain_desc.BufferDesc.Width = window_rect.right - window_rect.left;
-    swapchain_desc.BufferDesc.Height = window_rect.bottom - window_rect.top;
+    swapchain_desc.BufferDesc.Width = self->width;
+    swapchain_desc.BufferDesc.Height = self->height;
     swapchain_desc.BufferDesc.RefreshRate.Numerator = 60;
     swapchain_desc.BufferDesc.RefreshRate.Denominator = 1;
     swapchain_desc.BufferDesc.Format = gfx->backbuffer_format;
@@ -463,6 +523,17 @@ rex_gfx_swapchain_resize(Rex_Gfx* gfx, Rex_Gfx_Swapchain* self, unsigned width, 
 
         buffer->Release();
     }
+
+    self->width = width;
+    self->height = width;
+    self->current_backbuffer = 0;
+}
+
+void
+rex_gfx_swapchain_present(Rex_Gfx_Swapchain* self)
+{
+    self->handle->Present(0, 0);
+    self->current_backbuffer = (self->current_backbuffer + 1) % self->buffer_count;
 }
 
 Rex_Gfx_Texture*

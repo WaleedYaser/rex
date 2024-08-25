@@ -79,6 +79,8 @@ struct Rex_Gfx_Swapchain
     D3D12_CPU_DESCRIPTOR_HANDLE rtv[3];
     uint32_t buffer_count;
     uint32_t current_backbuffer;
+    uint32_t width;
+    uint32_t height;
 };
 
 struct Rex_Gfx_Texture

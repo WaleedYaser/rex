@@ -69,6 +69,11 @@ app_frame(App& self)
 	auto title = rc::str_fmt(rc::frame_allocator(), "Rex [frame: %lldms, busy: %lldms, free: %lldms]", frame_ms, busy_ms, free_ms);
 	rc::window_title_set(self.window, title.ptr);
 
+	rex_gfx_command_list_begin(self.command_list, self.swapchain);
+	rex_gfx_command_queue_execute(self.command_queue, self.command_list);
+	rex_gfx_swapchain_present(self.swapchain);
+	rex_gfx_command_queue_flush(self.command_queue);
+
 	return true;
 }
 
