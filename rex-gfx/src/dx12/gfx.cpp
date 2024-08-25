@@ -260,12 +260,33 @@ rex_gfx_init()
         rex_assert_msg(ms_quality_levels.NumQualityLevels > 0, "4x MSAA not supported");
     }
 
+    // create rtv and dsv heap descriptors
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
+        rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+        rtv_heap_desc.NumDescriptors = 2;
+        if (FAILED(self.device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&self.rtv_heap))))
+        {
+            rex_assert_msg(false, "Failed to create rtv descriptor heap");
+        }
+
+        D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
+        dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+        dsv_heap_desc.NumDescriptors = 1;
+        if (FAILED(self.device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(&self.dsv_heap))))
+        {
+            rex_assert_msg(false, "Failed to create dsv descriptor heap");
+        }
+    }
+
     return &self;
 }
 
 void
 rex_gfx_deinit(Rex_Gfx* self)
 {
+    self->dsv_heap->Release();
+    self->rtv_heap->Release();
     self->fence->Release();
     self->factory->Release();
     self->device->Release();
@@ -276,25 +297,51 @@ rex_gfx_deinit(Rex_Gfx* self)
 Rex_Gfx_Command_Queue*
 rex_gfx_command_queue_init(Rex_Gfx* gfx)
 {
-    ID3D12CommandQueue* command_queue_handle = nullptr;
+    auto self = rex_alloc_zeroed_T(Rex_Gfx_Command_Queue);
 
     D3D12_COMMAND_QUEUE_DESC command_queue_desc = {};
     command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-    if (FAILED(gfx->device->CreateCommandQueue(&command_queue_desc, IID_PPV_ARGS(&command_queue_handle))))
+    if (FAILED(gfx->device->CreateCommandQueue(&command_queue_desc, IID_PPV_ARGS(&self->handle))))
     {
         rex_assert_msg(false, "Failed to create command queue");
     }
 
-    auto self = rex_alloc_T(Rex_Gfx_Command_Queue);
-    self->handle = command_queue_handle;
+    if (FAILED(gfx->device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&self->fence))))
+    {
+        rex_assert_msg(false, "Failed to create fence");
+    }
+
     return self;
 }
 
 void
 rex_gfx_command_queue_deinit(Rex_Gfx_Command_Queue* self)
 {
+    self->fence->Release();
     self->handle->Release();
     rex_dealloc(self);
+}
+
+void
+rex_gfx_command_queue_flush(Rex_Gfx_Command_Queue* self)
+{
+    self->fence_value++;
+    if (FAILED(self->handle->Signal(self->fence, self->fence_value)))
+    {
+        rex_assert_msg(false, "Failed to signal fence value");
+    }
+
+    if (self->fence->GetCompletedValue() < self->fence_value)
+    {
+        HANDLE event_handle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
+        if (FAILED(self->fence->SetEventOnCompletion(self->fence_value, event_handle)))
+        {
+            rex_assert_msg(false, "Failed to set fence completion event");
+        }
+
+        WaitForSingleObject(event_handle, INFINITE);
+        CloseHandle(event_handle);
+    }
 }
 
 Rex_Gfx_Command_List*
@@ -328,9 +375,24 @@ rex_gfx_command_list_deinit(Rex_Gfx_Command_List* self)
     rex_dealloc(self);
 }
 
+void
+rex_gfx_command_list_set_viewport(Rex_Gfx_Command_List* self, const Rex_Gfx_Viewport viewport)
+{
+    D3D12_VIEWPORT vp = {};
+    vp.Width = viewport.width;
+    vp.Height = viewport.height;
+    vp.MinDepth = 0.0f;
+    vp.MaxDepth = 1.0f;
+    self->handle->RSSetViewports(1, &vp);
+}
+
 Rex_Gfx_Swapchain*
 rex_gfx_swapchain_init(Rex_Gfx* gfx, Rex_Gfx_Command_Queue* command_queue, void* window_native_handle)
 {
+    auto self = rex_alloc_zeroed_T(Rex_Gfx_Swapchain);
+    self->buffer_count = 2;
+    self->format = gfx->backbuffer_format;
+
     RECT window_rect = {};
     GetWindowRect((HWND)window_native_handle, &window_rect);
 
@@ -349,18 +411,100 @@ rex_gfx_swapchain_init(Rex_Gfx* gfx, Rex_Gfx_Command_Queue* command_queue, void*
     swapchain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swapchain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
-    if (FAILED(gfx->factory->CreateSwapChain(command_queue->handle, &swapchain_desc, &swapchain_handle)))
+    if (FAILED(gfx->factory->CreateSwapChain(command_queue->handle, &swapchain_desc, &self->handle)))
     {
         rex_assert_msg(false, "Failed to create swapchain");
     }
 
-    auto self = rex_alloc_T(Rex_Gfx_Swapchain);
-    self->handle = swapchain_handle;
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv_heap_handle = gfx->rtv_heap->GetCPUDescriptorHandleForHeapStart();
+    for (uint32_t i = 0; i < self->buffer_count; ++i)
+    {
+        ID3D12Resource* buffer;
+        if (FAILED(self->handle->GetBuffer(i, IID_PPV_ARGS(&buffer))))
+        {
+            rex_assert_msg(false, "Failed to get swapchain buffer");
+        }
+
+        gfx->device->CreateRenderTargetView(buffer, nullptr, rtv_heap_handle);
+        self->rtv[i] = rtv_heap_handle;
+        rtv_heap_handle.ptr += gfx->rtv_descriptor_size;
+
+        buffer->Release();
+    }
+
     return self;
 }
 
 void
 rex_gfx_swapchain_deinit(Rex_Gfx_Swapchain* self)
+{
+    self->handle->Release();
+    rex_dealloc(self);
+}
+
+void
+rex_gfx_swapchain_resize(Rex_Gfx* gfx, Rex_Gfx_Swapchain* self, unsigned width, unsigned height)
+{
+    if (FAILED(self->handle->ResizeBuffers(
+        self->buffer_count, width, height, self->format, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH)))
+    {
+        rex_assert_msg(false, "Failed to resize swapchain");
+    }
+
+    for (uint32_t i = 0; i < self->buffer_count; ++i)
+    {
+        ID3D12Resource* buffer;
+        if (FAILED(self->handle->GetBuffer(i, IID_PPV_ARGS(&buffer))))
+        {
+            rex_assert_msg(false, "Failed to get swapchain buffer");
+        }
+
+        gfx->device->CreateRenderTargetView(buffer, nullptr, self->rtv[i]);
+
+        buffer->Release();
+    }
+}
+
+Rex_Gfx_Texture*
+rex_gfx_texture_init(Rex_Gfx* gfx, const Rex_Gfx_Texture_Desc texture_desc)
+{
+    auto self = rex_alloc_zeroed_T(Rex_Gfx_Texture);
+    DXGI_FORMAT depth_stencil_format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+    D3D12_HEAP_PROPERTIES heap_properties = {};
+    heap_properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+    D3D12_RESOURCE_DESC resource_desc = {};
+    resource_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    resource_desc.Width = texture_desc.width;
+    resource_desc.Height = texture_desc.height;
+    resource_desc.DepthOrArraySize = 1;
+    resource_desc.MipLevels = 1;
+    resource_desc.Format = depth_stencil_format;
+    resource_desc.SampleDesc.Count = 1;
+    resource_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+
+    D3D12_CLEAR_VALUE clear_value = {};
+    clear_value.Format = depth_stencil_format;
+    clear_value.DepthStencil.Depth = 1.0f;
+
+    gfx->device->CreateCommittedResource(
+        &heap_properties,
+        D3D12_HEAP_FLAG_NONE,
+        &resource_desc,
+        D3D12_RESOURCE_STATE_COMMON,
+        &clear_value,
+        IID_PPV_ARGS(&self->handle));
+
+    gfx->device->CreateDepthStencilView(self->handle, nullptr, gfx->dsv_heap->GetCPUDescriptorHandleForHeapStart());
+    self->view = gfx->dsv_heap->GetCPUDescriptorHandleForHeapStart();
+
+    return self;
+}
+
+void
+rex_gfx_texture_deinit(Rex_Gfx_Texture* self)
 {
     self->handle->Release();
     rex_dealloc(self);

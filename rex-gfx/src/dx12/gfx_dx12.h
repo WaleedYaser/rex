@@ -51,6 +51,9 @@ struct Rex_Gfx
 
     ID3D12Fence* fence;
 
+    ID3D12DescriptorHeap* dsv_heap;
+    ID3D12DescriptorHeap* rtv_heap;
+
     uint32_t rtv_descriptor_size;
     uint32_t dsv_descriptor_size;
     uint32_t cbv_srv_uav_descriptor_size;
@@ -59,6 +62,8 @@ struct Rex_Gfx
 struct Rex_Gfx_Command_Queue
 {
     ID3D12CommandQueue* handle;
+    uint64_t fence_value;
+    ID3D12Fence* fence;
 };
 
 struct Rex_Gfx_Command_List
@@ -70,4 +75,14 @@ struct Rex_Gfx_Command_List
 struct Rex_Gfx_Swapchain
 {
     IDXGISwapChain* handle;
+    DXGI_FORMAT format;
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv[3];
+    uint32_t buffer_count;
+    uint32_t current_backbuffer;
+};
+
+struct Rex_Gfx_Texture
+{
+    ID3D12Resource* handle;
+    D3D12_CPU_DESCRIPTOR_HANDLE view;
 };
